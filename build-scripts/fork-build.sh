@@ -20,6 +20,12 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
+# Load machine-local build env (JDK/SDK/NDK/dotnet/nuget paths) if present.
+if [[ -f build-env.sh ]]; then
+  # shellcheck disable=SC1091
+  source build-env.sh
+fi
+
 MANIFEST="src/keepass2android-app/Manifests/AndroidManifest_nonet.xml"
 FLAVOR="NoNet"
 PUBLISH_DIR="src/keepass2android-app/bin/Release/net9.0-android/publish"

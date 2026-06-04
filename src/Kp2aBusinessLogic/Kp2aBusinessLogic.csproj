@@ -38,6 +38,12 @@
   <Content Remove="Io/MegaFileStorage.cs" />
 </ItemGroup>
 
+<!-- Fork build fix: Io/DropboxFileStorage.g.cs is generated into the source tree by GenerateSecrets.targets
+     and explicitly compiled below. Exclude it from the default **/*.cs glob so it isn't included twice
+     (NETSDK1022 duplicate Compile item) on incremental / .NET 9 Linux builds. -->
+<PropertyGroup>
+  <DefaultItemExcludes>$(DefaultItemExcludes);Io/DropboxFileStorage.g.cs</DefaultItemExcludes>
+</PropertyGroup>
 <Import Project="Io/GenerateSecrets.targets" />
 <ItemGroup>
 <Compile Include="Io/DropboxFileStorage.g.cs" />
