@@ -129,8 +129,10 @@ else
   $(warning Flavor environment variable not set.)
 endif
 
+# Fork: signing key alias is parameterizable (our keystore uses alias "kagiango"); defaults to upstream "kp2a".
+KeyAlias ?= kp2a
 ifneq ($(KeyStore),)
-  DOTNET_PARAM += -p:AndroidKeyStore=True -p:AndroidSigningKeyStore="$(KeyStore)" -p:AndroidSigningStorePass=env:MyAndroidSigningStorePass -p:AndroidSigningKeyPass=env:MyAndroidSigningKeyPass -p:AndroidSigningKeyAlias="kp2a"
+  DOTNET_PARAM += -p:AndroidKeyStore=True -p:AndroidSigningKeyStore="$(KeyStore)" -p:AndroidSigningStorePass=env:MyAndroidSigningStorePass -p:AndroidSigningKeyPass=env:MyAndroidSigningKeyPass -p:AndroidSigningKeyAlias="$(KeyAlias)"
 endif
 
 ifeq ($(detected_OS),Windows)

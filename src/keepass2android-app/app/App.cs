@@ -80,7 +80,7 @@ namespace keepass2android
 		public const int AppNameResource = Resource.String.app_name_nonet;
 		public const string AppNameShort = "@string/short_app_name_nonet";
 		public const string AppLauncherTitle = "@string/short_app_name_nonet";
-		public const string PackagePart = "keepass2android_nonet";
+		public const string PackagePart = "kagiango";
 		public const int LauncherIcon = Resource.Drawable.ic_launcher_offline;
 		public const int NotificationLockedIcon = Resource.Drawable.ic_notify_offline;
 		public const int NotificationUnlockedIcon = Resource.Drawable.ic_notify_locked;

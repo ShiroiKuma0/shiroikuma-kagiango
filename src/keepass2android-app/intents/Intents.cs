@@ -27,7 +27,9 @@ namespace keepass2android
 
 
     /// <summary>Broadcast this intent to lock the database (with quick unlock if enabled)</summary>
-    public const String LockDatabase = "keepass2android." + AppNames.PackagePart + ".lock_database";
+    // Fork: the bundled KP2A keyboard derives this action from getPackageName() (= applicationId,
+    // shiroikuma.kagiango), so the C# side must use the same "shiroikuma." prefix to match.
+    public const String LockDatabase = "shiroikuma." + AppNames.PackagePart + ".lock_database";
     /// <summary>Broadcast this intent to lock the database (with quick unlock if enabled) after some timeout occurred. As the locking is not triggered explicitly by the user, we expect to show the QuickUnlock dialog instead of leaving the app</summary>
     public const String LockDatabaseByTimeout = "keepass2android." + AppNames.PackagePart + ".lock_database_by_timeout";
 
@@ -43,7 +45,8 @@ namespace keepass2android
     public const String DataUpdated = "keepass2android." + AppNames.PackagePart + ".data_updated";
 
     /// <summary>This intent will be broadcast once the keyboard data has been cleared</summary>
-    public const String KeyboardCleared = "keepass2android." + AppNames.PackagePart + ".keyboard_cleared";
+    // Fork: matched against the keyboard's getPackageName()+".keyboard_cleared" receiver — see LockDatabase.
+    public const String KeyboardCleared = "shiroikuma." + AppNames.PackagePart + ".keyboard_cleared";
 
     public const String CopyUsername = "keepass2android.copy_username";
     public const String CopyPassword = "keepass2android.copy_password";
