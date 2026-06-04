@@ -101,7 +101,23 @@ Everything is orchestrated by the root `Makefile` (works with GNU make on both L
 
 **Required environment variables** (the Makefile errors out if unset): `ANDROID_SDK_ROOT`, `ANDROID_HOME`, `ANDROID_NDK_ROOT`. A `nuget` binary must be on `PATH` (in addition to `dotnet`).
 
-**Submodules are mandatory** — clone with `--recurse-submodules` or run `git submodule update --init`. Submodules: `src/SamsungPass`, `src/java/argon2/phc-winner-argon2`.
+**Build environment on this machine (already set up).** The toolchain is installed and validated (`make native`
+builds argon2). The machine-local paths live in the gitignored `build-env.sh` at the repo root — `source
+build-env.sh` before running `make …` by hand; `fork-build.sh` sources it automatically. What it points at:
+
+- **.NET 9 SDK** `9.0.314` at `~/.dotnet` (installed via `dotnet-install.sh`), with the **`android` workload**
+  (`35.0.105/9.0.100`). `dotnet` and `~/.dotnet/tools` are added to `PATH`.
+- **`nuget`** — a wrapper at `~/.local/bin/nuget` running `mono ~/.local/share/nuget/nuget.exe` (NuGet 7.6).
+- **JDK 21** (`/usr/lib/jvm/java-21-openjdk-amd64`) as `JAVA_HOME` — the system default `java` is JDK 11, too old.
+- **Android SDK** `/home/shiroikuma/android-sdk` (shared with the Gradle sibling forks), with **`platforms;android-26`**
+  (some components target API 26) and **NDK `26.3.11579264`** (r26d — the exact version the .NET 9 Android SDK pack
+  wants; set as `ANDROID_NDK_ROOT`).
+
+To re-provision on a fresh machine: install the .NET 9 SDK + `dotnet workload install android`, the mono `nuget`
+wrapper, `sdkmanager "ndk;26.3.11579264" "platforms;android-26"`, then write `build-env.sh` with those paths.
+
+**Submodules are mandatory** — clone with `--recurse-submodules` or run `git submodule update --init` (both
+`src/SamsungPass` and `src/java/argon2/phc-winner-argon2` are checked out here).
 
 The build is parameterized by two make variables:
 - `Flavor` — `Net` (full online build, "Keepass2Android"), `NoNet` (offline build, "Keepass2Android Offline"), or `Debug`. This selects an `AndroidManifest` and sets C# `DefineConstants` (e.g. `NoNet` defines `NO_QR_SCANNER;EXCLUDE_JAVAFILESTORAGE;NoNet`, dropping cloud-storage and QR code).

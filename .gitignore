@@ -130,6 +130,8 @@ Thumbs.db
 local.properties
 # Fork: machine-local signing config (passwords) — never commit.
 keystore.properties
+# Fork: machine-local build environment (JDK/SDK/NDK/dotnet paths) — never commit.
+build-env.sh
 # Fork: machine-local Claude Code settings.
 .claude/settings.local.json
 /src/FtpClientTest/FtpClientExamples
