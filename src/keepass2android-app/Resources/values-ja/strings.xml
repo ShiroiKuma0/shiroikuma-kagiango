@@ -31,10 +31,10 @@
   <string name="edit_group_title">グループを編集</string>
   <string name="algorithm">アルゴリズム</string>
   <string name="algorithm_colon">アルゴリズム</string>
-  <string name="app_name">Keepass2Android</string>
-  <string name="short_app_name">KP2A</string>
-  <string name="app_name_nonet">Keepass2Android Offline</string>
-  <string name="short_app_name_nonet">KP2A Offline</string>
+  <string name="app_name">白い熊 鍵暗号</string>
+  <string name="short_app_name">白い熊 鍵暗号</string>
+  <string name="app_name_nonet">白い熊 鍵暗号</string>
+  <string name="short_app_name_nonet">白い熊 鍵暗号</string>
   <string name="app_timeout">アプリのタイムアウト</string>
   <string name="app_timeout_summary">アプリが非アクティブになったあと、データベースをロックするまでの時間</string>
   <string name="show_kill_app">終了ボタン</string>
