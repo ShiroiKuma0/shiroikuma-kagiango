@@ -12,6 +12,9 @@
   <dimen name="splash_logo_marginTop">64dp</dimen>
 
   <dimen name="splash_fontsize">30dp</dimen>
-  
+
+  <!-- 白い熊 鍵暗号 UI page (fork) -->
+  <dimen name="theme_indent_step">32dp</dimen>
+  <dimen name="theme_swatch_size">28dp</dimen>
 
 </resources>

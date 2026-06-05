@@ -570,6 +570,12 @@ namespace keepass2android
 
 
       SetContentView(ContentResourceId);
+      // Fork (白い熊 鍵暗号 UI): own a real Toolbar (group.xml uses a NoActionBar theme) so the title row
+      // is fully themeable; activities with their own layout (no group_toolbar) keep the theme ActionBar.
+      var groupToolbar = FindViewById<AndroidX.AppCompat.Widget.Toolbar>(Resource.Id.group_toolbar);
+      if (groupToolbar != null)
+        SetSupportActionBar(groupToolbar);
+      ThemeGroupChrome();
 
 
       if (FindViewById(Resource.Id.enable_autofill) != null)
@@ -1080,11 +1086,50 @@ namespace keepass2android
 
     }
 
+    // Fork (白い熊 鍵暗号 UI): tint the FABs and (post-layout) the title row.
+    private void ThemeGroupChrome()
+    {
+      int[] fabIds =
+      {
+        Resource.Id.fabAddNew, Resource.Id.fabCancelAddNew, Resource.Id.fabAddNewGroup,
+        Resource.Id.fabAddNewEntry, Resource.Id.fabSearch, Resource.Id.fabTotpOverview
+      };
+      foreach (int id in fabIds)
+        keepass2android.Theming.Kp2aTheme.ApplyFab(FindViewById(id));
+      Window.DecorView.Post(() => keepass2android.Theming.Kp2aTheme.ApplyToolbarChrome(this, null));
+    }
+
+    // Fork (白い熊 鍵暗号 UI): opens the theming page on a long-press of the settings cog.
+    private class CogLongPressListener : Java.Lang.Object, View.IOnLongClickListener
+    {
+      private readonly GroupBaseActivity _activity;
+      public CogLongPressListener(GroupBaseActivity activity) { _activity = activity; }
+      public bool OnLongClick(View v)
+      {
+        _activity.StartActivity(new Intent(_activity, typeof(ShiroikumaUiActivity)));
+        return true;
+      }
+    }
+
     public override bool OnCreateOptionsMenu(IMenu menu)
     {
 
       MenuInflater inflater = MenuInflater;
       inflater.Inflate(Resource.Menu.group, menu);
+
+      // Fork (白い熊 鍵暗号 UI): long-press the settings cog to open the theming page (normal tap = settings).
+      Window.DecorView.Post(() =>
+      {
+        try
+        {
+          var cog = Window.DecorView.FindViewById(Resource.Id.menu_app_settings);
+          cog?.SetOnLongClickListener(new CogLongPressListener(this));
+        }
+        catch (System.Exception ex) { Kp2aLog.Log("Theme: cog long-press attach failed: " + ex); }
+      });
+
+      // Fork (白い熊 鍵暗号 UI): tint the title row background/title + menu icons.
+      Window.DecorView.Post(() => keepass2android.Theming.Kp2aTheme.ApplyToolbarChrome(this, menu));
       var searchManager = (SearchManager)GetSystemService(Context.SearchService);
 
       /*This is the start of a pretty hacky workaround to avoid a crash on Samsung devices with Android 9.
@@ -1228,6 +1273,8 @@ namespace keepass2android
 
       Util.PrepareDonateOptionMenu(menu, this);
 
+      // Fork (白い熊 鍵暗号 UI): tint the title row background/title + menu icons (icons exist by now).
+      keepass2android.Theming.Kp2aTheme.ApplyToolbarChrome(this, menu);
 
       return true;
     }
@@ -1256,6 +1303,10 @@ namespace keepass2android
 
         case Resource.Id.menu_app_settings:
           DatabaseSettingsActivity.Launch(this);
+          return true;
+
+        case Resource.Id.menu_shiroikuma_ui:
+          StartActivity(new Intent(this, typeof(ShiroikumaUiActivity)));
           return true;
 
         case Resource.Id.menu_sync:
@@ -1525,6 +1576,10 @@ namespace keepass2android
       lv.TextFilterEnabled = true;
 
       lv.Divider = null;
+
+      // Fork (白い熊 鍵暗号 UI): apply the themed list background (StyleListView runs in the list fragment).
+      keepass2android.Theming.Kp2aTheme.ApplyBackground(lv, keepass2android.Theming.ThemeSlot.ListBackground);
+      keepass2android.Theming.Kp2aTheme.ApplyBackground(lv.RootView, keepass2android.Theming.ThemeSlot.ListBackground);
     }
 
     public bool OnActionItemClicked(ActionMode mode, IMenuItem item)

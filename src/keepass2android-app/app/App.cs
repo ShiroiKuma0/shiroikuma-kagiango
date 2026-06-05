@@ -1696,6 +1696,8 @@ namespace keepass2android
       CreateNotificationChannels();
 
       Kp2a.OnCreate(this);
+      // Fork: seed the signature 白い熊 black/yellow palette on first run.
+      keepass2android.Theming.ThemeSeeder.SeedSignaturePaletteIfFirstRun(this);
       AndroidEnvironment.UnhandledExceptionRaiser += MyApp_UnhandledExceptionHandler;
 
       IntentFilter intentFilter = new IntentFilter();

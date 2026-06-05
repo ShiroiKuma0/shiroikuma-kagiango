@@ -5,11 +5,10 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:background="?android:attr/colorBackground">
-    <LinearLayout
-        android:id="@+id/top"
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/group_toolbar"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:orientation="horizontal" />
+        android:layout_height="?attr/actionBarSize" />
  
     <RelativeLayout
         android:id="@+id/bottom_bar"
@@ -358,7 +357,7 @@
    <keepass2android.views.BackgroundOperationContainer
         android:visibility="gone"
      android:id="@+id/background_ops_container"
-     android:layout_below="@id/top"
+     android:layout_below="@id/group_toolbar"
      android:layout_width="match_parent"
      android:layout_height="wrap_content"
 

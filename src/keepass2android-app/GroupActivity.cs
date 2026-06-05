@@ -42,7 +42,7 @@ using Object = Java.Lang.Object;
 
 namespace keepass2android
 {
-  [Activity(Label = "@string/app_name", ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.Keyboard | ConfigChanges.KeyboardHidden, Theme = "@style/Kp2aTheme_ActionBar", Exported = true)]
+  [Activity(Label = "@string/app_name", ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.Keyboard | ConfigChanges.KeyboardHidden, Theme = "@style/Kp2aTheme_NoActionBar", Exported = true)]
   [MetaData("android.app.default_searchable", Value = "keepass2android.search.SearchResults")]
 #if NoNet
     [MetaData("android.app.searchable", Resource = "@xml/searchable_offline")]
