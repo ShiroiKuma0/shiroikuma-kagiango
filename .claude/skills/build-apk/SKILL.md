@@ -5,11 +5,17 @@ description: Build the signed NoNet release APK for the 白い熊 鍵暗号 fork
 
 # Build the NoNet release APK and optionally push to phone
 
-> **Never ask whether to build — just build.** When this skill applies (the user asked to build, or
-> you've made changes that are ready to test), run the build immediately. Do **not** ask "shall I
-> build?" / "want me to run the build?" — that question is wrong. The **only** question in this whole
-> flow is the `AskUserQuestion` about the `adb push`, asked **after** a successful build. So: always
-> build, *then* ask about the push.
+> **Always build, then inquire about pushing — every time.** When this skill applies (the user asked
+> to build, OR you just implemented code changes the user requested), run the build immediately and
+> without asking permission. Do **not** ask "shall I build?" / "want me to run the build?" — that
+> question is wrong. The **only** question in this whole flow is the `AskUserQuestion` about the
+> `adb push`, asked **after** a successful build. So: always build, *then* ask about the push.
+
+> **A compile-only check never ends the flow.** `make dotnetbuild` (or any compile/error check) is fine
+> as a fast intermediate step while iterating, but it is **not** "the build" and does **not** replace
+> the push inquiry. Whenever the changes are ready, you must finish with the full signed build
+> (`./build-scripts/fork-build.sh`) **and** the `AskUserQuestion` push prompt — never leave the turn at
+> a compile-check.
 
 > **The push destination is ALWAYS `/sdcard/tmp/`.** Every `adb push` of the APK goes to
 > `/sdcard/tmp/<apk name>` — **never** `/sdcard/Download/` or anywhere else. Create `/sdcard/tmp` if

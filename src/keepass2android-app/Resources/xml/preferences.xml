@@ -46,5 +46,12 @@ Keepassdroid, Copyright Brian Pellin.
     <intent android:action="kp2a.action.AboutActivity" />
   </Preference>
 
+  <Preference
+    app:iconSpaceReserved="false"
+    android:key="shiroikuma_ui"
+    android:title="@string/shiroikuma_ui_category">
+    <intent android:action="kp2a.action.ShiroikumaUiActivity" />
+  </Preference>
+
 
 </PreferenceScreen>

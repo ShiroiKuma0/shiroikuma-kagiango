@@ -130,6 +130,13 @@ namespace keepass2android
       Kp2aLog.Log(ClassName + ":apptask=" + Intent.GetStringExtra("KP2A_APP_TASK_TYPE") + " " + ID);
     }
 
+    // Fork: applies the global app font (白い熊 鍵暗号 UI) after every SetContentView. No-op unless set.
+    public override void OnContentChanged()
+    {
+      base.OnContentChanged();
+      keepass2android.Theming.Kp2aTheme.ApplyGlobal(this);
+    }
+
 
     protected override void OnDestroy()
     {

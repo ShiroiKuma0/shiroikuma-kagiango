@@ -665,6 +665,7 @@ namespace keepass2android
       _rememberKeyfile = _prefs.GetBoolean(GetString(Resource.String.keyfile_key), Resources.GetBoolean(Resource.Boolean.keyfile_default));
 
       SetContentView(Resource.Layout.password);
+      ApplyUnlockTheme();
 
       InitializeToolbar();
 
@@ -1063,6 +1064,12 @@ namespace keepass2android
 
       var collapsingToolbar = FindViewById<CollapsingToolbarLayout>(Resource.Id.collapsing_toolbar);
       collapsingToolbar.SetTitle(GetString(Resource.String.unlock_database_title));
+      // Fork (白い熊 鍵暗号 UI): themed toolbar title colour.
+      if (keepass2android.Theming.Kp2aTheme.TryColor(this, keepass2android.Theming.ThemeSlot.ToolbarTitle, out var titleColor))
+      {
+        collapsingToolbar.SetCollapsedTitleTextColor(titleColor);
+        collapsingToolbar.SetExpandedTitleColor(titleColor);
+      }
 
       _drawerLayout = FindViewById<DrawerLayout>(Resource.Id.drawer_layout);
       mDrawerToggle = new ActionBarDrawerToggle(this, _drawerLayout,
@@ -1577,7 +1584,30 @@ namespace keepass2android
       {
         password.InputType = InputTypes.ClassText | InputTypes.TextVariationPassword;
       }
+      keepass2android.Theming.Kp2aTheme.ApplyColorAndFont(password, keepass2android.Theming.ThemeSlot.UnlockPasswordText, this);
       password.SetSelection(selStart, selEnd);
+    }
+
+    // Fork (白い熊 鍵暗号 UI): apply the unlock-screen colour/font overrides.
+    private void ApplyUnlockTheme()
+    {
+      try
+      {
+        keepass2android.Theming.Kp2aTheme.ApplyBackground(FindViewById(Android.Resource.Id.Content), keepass2android.Theming.ThemeSlot.UnlockBackground);
+        keepass2android.Theming.Kp2aTheme.ApplyBackground(FindViewById(Resource.Id.drawer_layout), keepass2android.Theming.ThemeSlot.UnlockBackground);
+        ApplyUnlockText(Resource.Id.password_label, keepass2android.Theming.ThemeSlot.UnlockLabel);
+        ApplyUnlockText(Resource.Id.filename, keepass2android.Theming.ThemeSlot.UnlockFilename);
+        ApplyUnlockText(Resource.Id.pass_ok, keepass2android.Theming.ThemeSlot.UnlockButtonText);
+        ApplyUnlockText(Resource.Id.change_db, keepass2android.Theming.ThemeSlot.UnlockButtonText);
+      }
+      catch (Exception e) { Kp2aLog.Log("Theme: ApplyUnlockTheme failed: " + e); }
+    }
+
+    private void ApplyUnlockText(int viewId, keepass2android.Theming.ThemeSlot slot)
+    {
+      var tv = FindViewById<TextView>(viewId);
+      if (tv != null)
+        keepass2android.Theming.Kp2aTheme.ApplyColorAndFont(tv, slot, this);
     }
 
     protected override void OnPause()

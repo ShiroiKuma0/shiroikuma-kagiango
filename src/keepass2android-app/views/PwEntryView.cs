@@ -33,6 +33,8 @@ using System.ComponentModel;
 using keepass2android;
 
 
+using keepass2android.Theming;
+
 namespace keepass2android.view
 {
   public sealed class PwEntryView : GroupListItemView
@@ -155,6 +157,8 @@ namespace keepass2android.view
           _db.DrawableFactory.AssignDrawableTo(iv, Context, _db.KpDatabase, pw.IconId, pw.CustomIconUuid, false);
         }
 
+        Kp2aTheme.ApplyTracedIcon((ImageView)ev.FindViewById(Resource.Id.entry_icon_bkg), iv);
+
         String title = pw.Strings.ReadSafe(PwDefs.TitleField);
         title = SprEngine.Compile(title, new SprContext(_entry, _db.KpDatabase, SprCompileFlags.All));
         var str = new SpannableString(title);
@@ -170,11 +174,18 @@ namespace keepass2android.view
 
         if (_groupActivity.IsBeingMoved(_entry.Uuid))
         {
-          int elementBeingMoved = Context.Resources.GetColor(Resource.Color.md_theme_inversePrimary);
-          _textView.SetTextColor(new Color(elementBeingMoved));
+          // Fork: highlight uses the themed accent (falls back to inversePrimary).
+          Color highlight = Kp2aTheme.AccentOr(Context, new Color(Context.Resources.GetColor(Resource.Color.md_theme_inversePrimary)));
+          _textView.SetTextColor(highlight);
+          Kp2aTheme.ApplyFont(_textView, ThemeColors.KeyOf(ThemeSlot.EntryTitle), Context);
         }
         else
+        {
           _textView.SetTextColor(new Color((int)_defaultTextColor));
+          Kp2aTheme.ApplyColorAndFont(_textView, ThemeSlot.EntryTitle, Context);
+        }
+        Kp2aTheme.ApplyColorAndFont(_textviewDetails, ThemeSlot.EntryUsername, Context);
+        Kp2aTheme.ApplyColorAndFont(_textgroupFullPath, ThemeSlot.EntryGroupPath, Context);
 
         String detail = pw.Strings.ReadSafe(PwDefs.UserNameField);
         detail = SprEngine.Compile(detail, new SprContext(_entry, _db.KpDatabase, SprCompileFlags.All));

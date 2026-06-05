@@ -72,6 +72,11 @@
         app:showAsAction="never"
   />
 
+  <item android:id="@+id/menu_shiroikuma_ui"
+        android:title="@string/shiroikuma_ui_category"
+        app:showAsAction="never"
+  />
+
 
 
 </menu>

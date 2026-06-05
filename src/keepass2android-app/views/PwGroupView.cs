@@ -26,6 +26,8 @@ using KeePassLib;
 using System;
 using Object = Java.Lang.Object;
 
+using keepass2android.Theming;
+
 namespace keepass2android.view
 {
 
@@ -104,6 +106,7 @@ namespace keepass2android.view
       ImageView iv = (ImageView)gv.FindViewById(Resource.Id.icon);
       Database db = App.Kp2a.FindDatabaseForElement(pw);
       db.DrawableFactory.AssignDrawableTo(iv, _groupBaseActivity, db.KpDatabase, pw.IconId, pw.CustomIconUuid, true);
+      Kp2aTheme.ApplyTracedIcon((ImageView)gv.FindViewById(Resource.Id.group_icon_bkg), iv);
       gv.FindViewById(Resource.Id.icon).Visibility = ViewStates.Visible;
       gv.FindViewById(Resource.Id.check_mark).Visibility = ViewStates.Invisible;
 
@@ -115,12 +118,18 @@ namespace keepass2android.view
 
       if (_groupBaseActivity.IsBeingMoved(_pwGroup.Uuid))
       {
-        int elementBeingMoved = Context.Resources.GetColor(Resource.Color.md_theme_inversePrimary);
-        _textview.SetTextColor(new Color(elementBeingMoved));
+        // Fork: highlight uses the themed accent (falls back to inversePrimary).
+        Color highlight = Kp2aTheme.AccentOr(Context, new Color(Context.Resources.GetColor(Resource.Color.md_theme_inversePrimary)));
+        _textview.SetTextColor(highlight);
+        Kp2aTheme.ApplyFont(_textview, ThemeColors.KeyOf(ThemeSlot.GroupTitle), Context);
       }
       else
+      {
         _textview.SetTextColor(new Color((int)_defaultTextColor));
+        Kp2aTheme.ApplyColorAndFont(_textview, ThemeSlot.GroupTitle, Context);
+      }
 
+      Kp2aTheme.ApplyColorAndFont(_label, ThemeSlot.GroupSubtitle, Context);
       _label.Text = _groupBaseActivity.GetString(Resource.String.group) + " - ";
       uint numEntries = CountEntries(pw);
       if (numEntries == 1)
