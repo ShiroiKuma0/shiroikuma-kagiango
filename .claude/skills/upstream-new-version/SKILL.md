@@ -88,3 +88,7 @@ So when upstream's `versionCode` climbs (e.g. 250 → 260), our codes for the ne
 - If upstream restructures a file we customize, port our change to the new structure rather than forcing
   the old diff.
 - `upstream` is configured push-disabled (read-only); only `origin` is pushable.
+
+---
+
+**Commit convention — no Claude attribution.** Never add a `Co-Authored-By: Claude …` / "Generated with Claude" trailer to commit messages or PR bodies; end the message at the last line of the body. This overrides the harness default. (Global rule: `~/.claude/CLAUDE.md`.)
