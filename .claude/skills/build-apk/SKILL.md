@@ -92,3 +92,7 @@ APK is debug-signed and will not install as a release; recreate it (see `CLAUDE.
 
 The Java modules (`make java`) and the native argon2 lib (`make native`) build the first time and are then
 cached. If the build can't find `dotnet`, install the .NET SDK and run `dotnet workload install android`.
+
+---
+
+**Commit convention — no Claude attribution.** Never add a `Co-Authored-By: Claude …` / "Generated with Claude" trailer to commit messages or PR bodies; end the message at the last line of the body. This overrides the harness default. (Global rule: `~/.claude/CLAUDE.md`.)

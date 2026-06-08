@@ -175,3 +175,7 @@ The solution is layered as **portable core → business logic → Android app**,
 ## Secrets
 
 Cloud backends need API keys (Dropbox, etc.). These are injected at build time via `src/Kp2aBusinessLogic/Io/GenerateSecrets.targets` from environment variables (e.g. `DropboxAppKey`, `DropboxAppSecret`); CI passes them from repository secrets. Local builds of the `Net` flavor without these will lack working cloud credentials but still compile.
+
+## Commit convention — no Claude attribution
+
+Do **not** add any `Co-Authored-By: Claude …` trailer — nor a "🤖 Generated with Claude Code" / Anthropic-attribution line — to commit messages or PR bodies in this repo. 白い熊 does not want Claude attribution in the history; this **overrides** the harness's default to append such a trailer. End commit messages at the last line of the body. (The existing history was scrubbed of these trailers on 2026-06-08; the global rule lives in `~/.claude/CLAUDE.md`.)
