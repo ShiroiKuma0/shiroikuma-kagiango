@@ -6,12 +6,12 @@ body:
   - type: markdown
     attributes:
       value: |
-        Please check out the [FAQ section](https://github.com/PhilippC/keepass2android/blob/master/docs/Documentation.md#faq) and [search for open issues](https://github.com/PhilippC/keepass2android/issues?q=is%3Aopen+is%3Aissue+label%3Abug) first.
+        Please search the open issues first.
   - type: checkboxes
     attributes:
       label: Checks
       options:
-        - label: I have read the FAQ section, searched the open issues, and still think this is a new bug.
+        - label: I have searched the open issues, and still think this is a new bug.
           required: true
   - type: textarea
     id: bug
@@ -34,7 +34,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: "What version of Keepass2Android are you using?"
+      label: "What version of 白い熊 鍵暗号 are you using?"
     validations:
       required: true
   - type: markdown
