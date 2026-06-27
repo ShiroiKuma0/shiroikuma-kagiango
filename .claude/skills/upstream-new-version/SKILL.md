@@ -72,8 +72,9 @@ So when upstream's `versionCode` climbs (e.g. 250 → 260), our codes for the ne
    `"keepass2android."`) so the keyboard's lock-key / clear-on-lock still match. If upstream changes how
    either side builds these actions, re-port this fix rather than blindly keeping the old diff.
 
-6. **Build the new `+1`** via the **build-apk** skill (`./build-scripts/fork-build.sh`), then **ask** before
-   any `adb push`. This is the first build of the new upstream line (`<newVersion>+1`).
+6. **Build the new `+1`** via the **build-apk** skill (`./build-scripts/fork-build.sh`), then deliver it via
+   **`/after-build`** (auto: `/adb-push` if a phone is connected, else `/scp` to skhw — no prompt). This
+   is the first build of the new upstream line (`<newVersion>+1`).
 
 7. **Stop.** Let the user test. Commit/push only on their explicit **"Push"** (force-push may be needed for
    `custom` since rebasing rewrites history: `git push --force-with-lease origin custom`; `main` is a
