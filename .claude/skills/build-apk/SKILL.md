@@ -1,28 +1,28 @@
 ---
 name: build-apk
-description: Build the signed NoNet release APK for the 白い熊 鍵暗号 fork via build-scripts/fork-build.sh, then always ask whether to scp it to skhw (first choice) or adb push it to the connected phone. Always build first without asking for permission to build — the ONLY question you ever ask is the transfer question afterward. Use whenever the user asks to build the app, build the APK, make a release build, or build and send to the phone.
+description: Build the signed NoNet release APK for the 白い熊 鍵暗号 fork via build-scripts/fork-build.sh, then deliver it AUTOMATICALLY via the global /after-build skill (adb-push to the phone if connected, else scp to skhw) — no transfer prompt. Always build first without asking for permission to build, and never ask how to transfer the APK. Use whenever the user asks to build the app, build the APK, make a release build, or build and send to the phone.
 ---
 
 # Build the NoNet release APK and optionally send to phone
 
-> **Always build, then inquire about transferring — every time.** When this skill applies (the user asked
+> **Always build, then deliver automatically — every time.** When this skill applies (the user asked
 > to build, OR you just implemented code changes the user requested), run the build immediately and
 > without asking permission. Do **not** ask "shall I build?" / "want me to run the build?" — that
-> question is wrong. The **only** question in this whole flow is the `AskUserQuestion` about
-> transferring the APK, asked **after** a successful build. So: always build, *then* ask about the transfer.
+> question is wrong. And do **not** ask how to transfer the APK: after a successful build, delivery is
+> automatic via `/after-build` (see below). So: always build, *then* deliver — no questions.
 
 > **A compile-only check never ends the flow.** `make dotnetbuild` (or any compile/error check) is fine
 > as a fast intermediate step while iterating, but it is **not** "the build" and does **not** replace
-> the transfer inquiry. Whenever the changes are ready, you must finish with the full signed build
-> (`./build-scripts/fork-build.sh`) **and** the `AskUserQuestion` transfer prompt — never leave the turn at
+> delivery. Whenever the changes are ready, you must finish with the full signed build
+> (`./build-scripts/fork-build.sh`) **and** the `/after-build` delivery — never leave the turn at
 > a compile-check.
 
 > **The push destination is ALWAYS `/sdcard/tmp/`.** Every `adb push` of the APK goes to
 > `/sdcard/tmp/<apk name>` — **never** `/sdcard/Download/` or anywhere else. Create `/sdcard/tmp` if
 > needed and push there.
 
-> **Never run `adb install` (or `pm install`).** The build step may copy the APK to the phone with
-> `adb push` — and only after confirming with the user — but **the user installs the APK themselves**
+> **Never run `adb install` (or `pm install`).** The build step copies the APK to the phone with
+> `adb push` automatically (via `/after-build`), but **the user installs the APK themselves**
 > from the phone's file manager. Do not install it for them under any circumstances.
 
 > **Never `git commit` or `git push` on your own.** Building does not include committing. After
@@ -30,11 +30,12 @@ description: Build the signed NoNet release APK for the 白い熊 鍵暗号 fork
 > explicitly says "Push"** do you then `git commit` the changes and `git push origin custom`. The
 > user's **"Push"** means *commit-and-push-to-the-fork* — it is unrelated to the `adb push` file copy.
 
-> **ALWAYS end every build by asking — via `AskUserQuestion` — how to transfer the APK: `scp` to
-> skhw (FIRST choice), `adb push` to `/sdcard/tmp/`, or not at all.** This is mandatory and applies
-> to *every* successful build, even verification builds and even when the user didn't mention
-> transferring. Do **not** settle for asking in prose — fire the `AskUserQuestion` prompt as the
-> final step.
+> **ALWAYS end every build by delivering the APK via `/after-build` — never ask.** Once the signed
+> APK is in `~/tmp/`, invoke the global **`/after-build`** skill: it runs **`/adb-check`** (UNSANDBOXED
+> — a sandboxed check falsely reports no device), then **`/adb-push`** to `/sdcard/tmp/` if a phone is
+> connected, otherwise **`/scp`** to `skhw:~/tmp/`, and announces the filename that landed. Mandatory
+> for *every* successful build. Do **not** prompt "scp or adb push?" or "is the phone connected?" —
+> `/after-build` decides and announces on its own.
 
 ## What this fork builds
 
@@ -65,26 +66,20 @@ See `CLAUDE.md` for the full fork layer.
      them up first (see `CLAUDE.md` → Building). The upstream project only CI-builds on Windows; a Linux
      build via modern `dotnet` android workloads is expected to work but must be verified on first run.
 
-3. **At the end of every build, ALWAYS ask** via `AskUserQuestion` how to transfer the APK to the phone —
-   no exceptions, no assuming, no asking only in prose. Options, in this order: "Scp to skhw" (FIRST
-   choice) / "adb push" / "No, just build". Fire this as soon as the build succeeds, regardless of
-   whether the user mentioned transferring.
+3. **Deliver via `/after-build` — no prompt.** As soon as the build succeeds with the signed APK in
+   `~/tmp/`, invoke the global **`/after-build`** skill. It runs **`/adb-check`** UNSANDBOXED (a
+   sandboxed check falsely reports no device), then:
+   - **phone connected** → **`/adb-push`** the newest `~/tmp/*.apk` to `/sdcard/tmp/<apk name>`
+     (creating `/sdcard/tmp` if needed), and announce it. Never `adb install` — the user installs
+     manually from `/sdcard/tmp/`.
+   - **no phone** → **`/scp`** the newest `~/tmp/*.apk` to `skhw:~/tmp/`, and announce it.
 
-4. **Transfer per the answer:**
-   - **Scp to skhw** — invoke the global **scp** skill (copies the newest APK in `~/tmp/` to
-     `skhw:~/tmp/`). If skhw is unreachable (its tunnel is served by the phone's sshd and may be down),
-     report that and offer the adb push instead.
-   - **adb push:**
-     - `adb devices` — confirm a device is connected.
-     - `adb shell mkdir -p /sdcard/tmp`
-     - `adb push ~/tmp/<apk name> /sdcard/tmp/<apk name>`
-     - Verify: `adb shell ls -l /sdcard/tmp/<apk name>` (size should match the local file in `~/tmp`).
-     - Never `adb install` — the user installs manually from `/sdcard/tmp/`.
+   Do this for every successful build, without asking.
 
 ## Note — transfer directly, do not rely on a task prompt
 
 `fork-build.sh` has **no** interactive prompt — it only builds, copies the APK to `~/tmp`, and bumps the
-build number. Asking the user and running the `scp` / `adb push` is Claude's job (steps 3–4), done conversationally.
+build number. Delivering the APK (`/adb-push` or `/scp` via `/after-build`) is Claude's job (step 3), done automatically — no transfer prompt.
 
 ## Signing
 
