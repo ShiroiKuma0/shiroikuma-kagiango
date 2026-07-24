@@ -234,6 +234,134 @@ namespace keepass2android.Theming
             }
         }
 
+        // ---- dialogs ------------------------------------------------------------------------------
+
+        /// <summary>
+        /// Themes an alert dialog after Show(): black rounded surface with an accent border,
+        /// themed title/message text and accent buttons. No-op per element when a slot is unset.
+        /// </summary>
+        public static void ApplyAlertDialog(Dialog dialog)
+        {
+            if (dialog == null)
+                return;
+            try
+            {
+                Context ctx = dialog.Context;
+                bool hasAccent = TryColor(ctx, ThemeSlot.Accent, out var accent);
+                if (TryColor(ctx, ThemeSlot.PageBackground, out var bg))
+                {
+                    var shape = new GradientDrawable();
+                    shape.SetColor(bg);
+                    shape.SetCornerRadius(Dp(ctx, 28));
+                    if (hasAccent)
+                        shape.SetStroke(Dp(ctx, 2), accent);
+                    dialog.Window?.SetBackgroundDrawable(shape);
+                }
+                if (TryColor(ctx, ThemeSlot.PageText, out var text))
+                {
+                    var title = dialog.FindViewById<TextView>(Resource.Id.alertTitle);
+                    title?.SetTextColor(text);
+                    var message = dialog.FindViewById<TextView>(Android.Resource.Id.Message);
+                    message?.SetTextColor(text);
+                }
+                if (hasAccent && dialog is AndroidX.AppCompat.App.AlertDialog ad)
+                {
+                    ad.GetButton((int)Android.Content.DialogButtonType.Positive)?.SetTextColor(accent);
+                    ad.GetButton((int)Android.Content.DialogButtonType.Negative)?.SetTextColor(accent);
+                    ad.GetButton((int)Android.Content.DialogButtonType.Neutral)?.SetTextColor(accent);
+                }
+            }
+            catch (Exception e)
+            {
+                Kp2aLog.Log("Theme: ApplyAlertDialog failed: " + e);
+            }
+        }
+
+        // ---- settings pages (AndroidX preference screens) -----------------------------------------
+
+        /// <summary>
+        /// Themes a preference fragment's RecyclerView: rows visible now and every row the adapter
+        /// attaches later (rows recycle, so a one-shot walk would miss them).
+        /// </summary>
+        public static void ApplyPreferenceList(AndroidX.RecyclerView.Widget.RecyclerView list)
+        {
+            if (list == null)
+                return;
+            try
+            {
+                list.AddOnChildAttachStateChangeListener(new PrefRowThemer());
+                for (int i = 0; i < list.ChildCount; i++)
+                    ApplyPreferenceRow(list.GetChildAt(i));
+            }
+            catch (Exception e)
+            {
+                Kp2aLog.Log("Theme: ApplyPreferenceList failed: " + e);
+            }
+        }
+
+        private sealed class PrefRowThemer : Java.Lang.Object,
+            AndroidX.RecyclerView.Widget.RecyclerView.IOnChildAttachStateChangeListener
+        {
+            public void OnChildViewAttachedToWindow(View view) => ApplyPreferenceRow(view);
+            public void OnChildViewDetachedFromWindow(View view) { }
+        }
+
+        /// <summary>One preference row: title/summary/icon; category headers have no summary view.</summary>
+        public static void ApplyPreferenceRow(View row)
+        {
+            if (row == null)
+                return;
+            try
+            {
+                var title = row.FindViewById<TextView>(Android.Resource.Id.Title);
+                var summary = row.FindViewById<TextView>(Android.Resource.Id.Summary);
+                bool isCategory = summary == null;
+                if (title != null)
+                    ApplyColorAndFont(title, isCategory ? ThemeSlot.SettingsCategory : ThemeSlot.SettingsTitle);
+                if (summary != null)
+                    ApplyColorAndFont(summary, ThemeSlot.SettingsSubtitle);
+
+                var icon = row.FindViewById<ImageView>(Android.Resource.Id.Icon);
+                if (icon?.Drawable != null && TryColor(row.Context, ThemeSlot.SettingsTitle, out var iconColor))
+                    icon.SetColorFilter(iconColor);
+
+                ApplyToggleAccent(row);
+            }
+            catch (Exception e)
+            {
+                Kp2aLog.Log("Theme: ApplyPreferenceRow failed: " + e);
+            }
+        }
+
+        /// <summary>Accent the row's switch/checkbox: accent when checked, grey when off.</summary>
+        private static void ApplyToggleAccent(View row)
+        {
+            var frame = row.FindViewById<ViewGroup>(Android.Resource.Id.WidgetFrame);
+            if (frame == null || !TryColor(row.Context, ThemeSlot.Accent, out var accent))
+                return;
+            var off = new Color(unchecked((int)0xFF888888));
+            for (int i = 0; i < frame.ChildCount; i++)
+            {
+                var child = frame.GetChildAt(i);
+                if (child is AndroidX.AppCompat.Widget.SwitchCompat sw)
+                {
+                    sw.ThumbTintList = CheckedCsl(accent, off);
+                    var trackOn = new Color(accent.R, accent.G, accent.B, (byte)0x66);
+                    var trackOff = new Color(off.R, off.G, off.B, (byte)0x66);
+                    sw.TrackTintList = CheckedCsl(trackOn, trackOff);
+                }
+                else if (child is CompoundButton cb)
+                {
+                    cb.ButtonTintList = CheckedCsl(accent, off);
+                }
+            }
+        }
+
+        private static ColorStateList CheckedCsl(Color on, Color off) =>
+            new ColorStateList(
+                new[] { new[] { Android.Resource.Attribute.StateChecked }, new int[0] },
+                new[] { on.ToArgb(), off.ToArgb() });
+
         // ---- title row (the group-screen ActionBar's backing toolbar) -----------------------------
 
         public static void ApplyToolbarChrome(Activity activity, IMenu menu)

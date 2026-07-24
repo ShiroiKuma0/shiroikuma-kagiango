@@ -270,6 +270,9 @@ namespace keepass2android
 
       SupportActionBar.Title = GetString(Resource.String.select_database);
 
+      // Fork (白い熊 鍵暗号 UI): tint the title row + status bar.
+      Window?.DecorView?.Post(() => keepass2android.Theming.Kp2aTheme.ApplyToolbarChrome(this, null));
+
 
       //only load the AppTask if this is the "first" OnCreate (not because of kill/resume, i.e. savedInstanceState==null)
       // and if the activity is not launched from history (i.e. recent tasks) because this would mean that

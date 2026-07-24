@@ -142,7 +142,7 @@ namespace keepass2android
   /// <summary>
   /// Activity to configure the application and database settings. The database must be unlocked, and this activity will close if it becomes locked.
   /// </summary>
-  [Activity(Label = "@string/app_name", Theme = "@style/Kp2aTheme_ActionBar", ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.Keyboard | ConfigChanges.KeyboardHidden)]
+  [Activity(Label = "@string/app_name", Theme = "@style/Kp2aTheme_NoActionBar", ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.Keyboard | ConfigChanges.KeyboardHidden)]
   public class DatabaseSettingsActivity : LockCloseActivity, PreferenceFragmentCompat.IOnPreferenceStartFragmentCallback
   {
 
@@ -163,9 +163,8 @@ namespace keepass2android
     {
       _design.ApplyTheme();
       base.OnCreate(savedInstanceState);
-      new Util.InsetListener(FindViewById(Resource.Id.settings)).Apply();
-
-
+      // Fork (白い熊 鍵暗号 UI): insets are handled by fitsSystemWindows on the layout root
+      // (preference.axml now hosts its own toolbar), matching the group screens.
     }
 
     public SettingsFragmentManager settingsFragmentManager;

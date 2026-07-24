@@ -159,6 +159,7 @@ namespace keepass2android
     private BiometricPrompt _biometricPrompt;
     private FragmentActivity _activity;
     private BiometricAuthCallbackAdapter _biometricAuthCallbackAdapter;
+    private keepass2android.Theming.ShiroikumaFingerprintDialog _forkDialog;
 
     public BiometricCrypt(BiometricModule biometric, string keyId)
     {
@@ -186,13 +187,25 @@ namespace keepass2android
 
     public void StartListening(IBiometricAuthCallback callback)
     {
-      _biometricAuthCallbackAdapter = new BiometricAuthCallbackAdapter(callback, _activity);
-      StartListening(_biometricAuthCallbackAdapter);
+      // Fork (白い熊 鍵暗号 UI): draw our own themed fingerprint dialog where the compat
+      // fingerprint API works; the system BiometricPrompt ignores runtime theme overrides.
+      // If the legacy API errors out right away, the dialog silently hands over to the prompt.
+      Action systemPromptFallback = () =>
+      {
+        _forkDialog = null;
+        _biometricAuthCallbackAdapter = new BiometricAuthCallbackAdapter(callback, _activity);
+        StartListening(_biometricAuthCallbackAdapter);
+      };
+      if (keepass2android.Theming.ShiroikumaFingerprintDialog.TryStart(_activity, _cipher, callback, systemPromptFallback, out _forkDialog))
+        return;
+      systemPromptFallback();
     }
 
     public void StopListening()
     {
       Kp2aLog.Log("Fingerprint: StopListening " + (_biometricPrompt != null ? " having prompt " : " without prompt"));
+      _forkDialog?.Stop();
+      _forkDialog = null;
       _biometricAuthCallbackAdapter?.IgnoreNextError();
       _biometricPrompt?.CancelAuthentication();
     }

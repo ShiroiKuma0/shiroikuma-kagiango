@@ -741,7 +741,7 @@ namespace keepass2android
           b.SetMessage(btn.Tag.ToString());
           b.SetPositiveButton(Android.Resource.String.Ok, (o, eventArgs) => ((Dialog)o).Dismiss());
           b.SetOnDismissListener(new Util.DismissListener(() => _biometricDec?.StartListening(this)));
-          b.Show();
+          keepass2android.Theming.Kp2aTheme.ApplyAlertDialog(b.Show());
         }
         else _biometricDec?.StartListening(this);
 
@@ -2003,7 +2003,9 @@ namespace keepass2android
         if (_biometricDec.Init())
         {
           btn.SetImageResource(Resource.Drawable.baseline_fingerprint_24);
-          _biometricDec.StartListening(new BiometricAuthCallbackAdapter(this, this));
+          // Fork (白い熊 鍵暗号 UI): go through the IBiometricAuthCallback overload so the themed
+          // fork fingerprint dialog is used (the adapter overload goes straight to the system prompt).
+          _biometricDec.StartListening((IBiometricAuthCallback)this);
           return true;
         }
         else

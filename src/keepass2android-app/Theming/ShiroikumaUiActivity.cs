@@ -33,7 +33,7 @@ namespace keepass2android
     /// subgroups, colour rows and font (family / weight / size / live sample) rows.
     /// </summary>
     [Activity(Label = "@string/shiroikuma_ui_category",
-        Theme = "@style/Kp2aTheme_BlueActionBar",
+        Theme = "@style/Kp2aTheme_BlueNoActionBar",
         Exported = true,
         ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.Keyboard | ConfigChanges.KeyboardHidden)]
     [IntentFilter(new[] { "kp2a.action.ShiroikumaUiActivity" }, Categories = new[] { Intent.CategoryDefault })]
@@ -74,7 +74,10 @@ namespace keepass2android
             _pendingFontKey = savedInstanceState?.GetString("pending_font_key");
             SetContentView(Resource.Layout.activity_shiroikuma_ui);
 
+            // Our own toolbar (NoActionBar theme) so the title row obeys the colour overrides.
+            SetSupportActionBar(FindViewById<AndroidX.AppCompat.Widget.Toolbar>(Resource.Id.theme_toolbar));
             SupportActionBar?.SetDisplayHomeAsUpEnabled(true);
+            Window?.DecorView?.Post(() => Kp2aTheme.ApplyToolbarChrome(this, null));
             OnSupportNavigateUpListener = () => { Finish(); return true; };
 
             _baseStartPx = Dp(16);
@@ -131,6 +134,17 @@ namespace keepass2android
             AddSubgroup(Resource.String.theme_subgroup_groups, 1);
             AddSlot(ThemeSlot.GroupTitle, 2);
             AddSlot(ThemeSlot.GroupSubtitle, 2);
+
+            AddSection(Resource.String.theme_section_entryview);
+            AddSlot(ThemeSlot.EntryViewBackground, 1);
+            AddSlot(ThemeSlot.EntryFieldLabel, 1);
+            AddSlot(ThemeSlot.EntryFieldValue, 1);
+
+            AddSection(Resource.String.theme_section_settings);
+            AddSlot(ThemeSlot.SettingsBackground, 1);
+            AddSlot(ThemeSlot.SettingsTitle, 1);
+            AddSlot(ThemeSlot.SettingsSubtitle, 1);
+            AddSlot(ThemeSlot.SettingsCategory, 1);
 
             AddSection(Resource.String.theme_section_icons);
             AddSlot(ThemeSlot.IconMain, 1);

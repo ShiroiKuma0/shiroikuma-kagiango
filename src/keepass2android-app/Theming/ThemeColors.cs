@@ -27,7 +27,9 @@ namespace keepass2android.Theming
         Icons,
         Fab,
         Unlock,
-        List
+        List,
+        Settings,
+        EntryScreen
     }
 
     /// <summary>Every themeable element of the 白い熊 鍵暗号 UI page.</summary>
@@ -56,7 +58,14 @@ namespace keepass2android.Theming
         IconSecondary,
         FabBackground,
         FabBorder,
-        FabIcon
+        FabIcon,
+        SettingsBackground,
+        SettingsTitle,
+        SettingsSubtitle,
+        SettingsCategory,
+        EntryViewBackground,
+        EntryFieldLabel,
+        EntryFieldValue
     }
 
     /// <summary>Metadata describing one themeable slot.</summary>
@@ -122,6 +131,15 @@ namespace keepass2android.Theming
             new ColorSlotInfo(ThemeSlot.FabBackground,      "fab_background",       Resource.String.theme_fab_background,      ColorGroup.Fab,    true,  false),
             new ColorSlotInfo(ThemeSlot.FabBorder,          "fab_border",           Resource.String.theme_fab_border,          ColorGroup.Fab,    true,  false),
             new ColorSlotInfo(ThemeSlot.FabIcon,            "fab_icon",             Resource.String.theme_fab_icon,            ColorGroup.Fab,    true,  false),
+            // Settings pages (AndroidX preference screens)
+            new ColorSlotInfo(ThemeSlot.SettingsBackground, "settings_background",  Resource.String.theme_settings_background, ColorGroup.Settings, true, false),
+            new ColorSlotInfo(ThemeSlot.SettingsTitle,      "settings_title",       Resource.String.theme_settings_title,      ColorGroup.Settings, true, true),
+            new ColorSlotInfo(ThemeSlot.SettingsSubtitle,   "settings_subtitle",    Resource.String.theme_settings_subtitle,   ColorGroup.Settings, true, false),
+            new ColorSlotInfo(ThemeSlot.SettingsCategory,   "settings_category",    Resource.String.theme_settings_category,   ColorGroup.Settings, true, false),
+            // Entry view (the single-entry screen)
+            new ColorSlotInfo(ThemeSlot.EntryViewBackground,"entryview_background", Resource.String.theme_entryview_background,ColorGroup.EntryScreen, true, false),
+            new ColorSlotInfo(ThemeSlot.EntryFieldLabel,    "entryview_label",      Resource.String.theme_entryview_label,     ColorGroup.EntryScreen, true, true),
+            new ColorSlotInfo(ThemeSlot.EntryFieldValue,    "entryview_value",      Resource.String.theme_entryview_value,     ColorGroup.EntryScreen, true, true),
         };
 
         private static readonly Dictionary<ThemeSlot, ColorSlotInfo> BySlot = BuildIndex();

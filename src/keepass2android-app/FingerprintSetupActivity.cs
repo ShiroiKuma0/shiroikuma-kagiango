@@ -262,7 +262,9 @@ namespace keepass2android
           throw new Exception("Failed to initialize cipher");
         ResetErrorTextRunnable();
 
-        _enc.StartListening(new BiometricAuthCallbackAdapter(this, this));
+        // Fork (白い熊 鍵暗号 UI): go through the IBiometricAuthCallback overload so the themed
+        // fork fingerprint dialog is used here too.
+        _enc.StartListening((IBiometricAuthCallback)this);
       }
       catch (Exception e)
       {

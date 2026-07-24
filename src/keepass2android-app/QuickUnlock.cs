@@ -89,6 +89,9 @@ namespace keepass2android
       collapsingToolbar.SetTitle(GetString(Resource.String.QuickUnlock_prefs));
       SetSupportActionBar(FindViewById<Toolbar>(Resource.Id.toolbar));
 
+      // Fork (白い熊 鍵暗号 UI): tint the title row + status bar.
+      Window?.DecorView?.Post(() => keepass2android.Theming.Kp2aTheme.ApplyToolbarChrome(this, null));
+
       if (App.Kp2a.GetDbForQuickUnlock().KpDatabase.Name != "")
       {
         FindViewById(Resource.Id.filename_label).Visibility = ViewStates.Visible;

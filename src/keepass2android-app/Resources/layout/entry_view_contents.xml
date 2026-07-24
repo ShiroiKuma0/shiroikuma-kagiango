@@ -333,7 +333,7 @@
 
       <!-- file attachments -->
       <TextView
-        
+          android:id="@+id/entry_binaries_header"
           android:layout_width="fill_parent"
           android:layout_height="wrap_content"
           android:text="@string/entry_binaries"
@@ -515,7 +515,8 @@
         android:orientation="vertical">
 
       <!-- previous versions-->
-      <TextView        
+      <TextView
+          android:id="@+id/entry_history_header"
           android:layout_width="fill_parent"
           android:layout_height="wrap_content"
           android:text="@string/entry_history"

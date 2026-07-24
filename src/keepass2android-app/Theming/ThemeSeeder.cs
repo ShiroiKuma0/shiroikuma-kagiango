@@ -69,6 +69,8 @@ namespace keepass2android.Theming
             SetIf(ctx, ThemeSlot.TitlebarBackground, Black, force);
             SetIf(ctx, ThemeSlot.FabBackground, Black, force);
             SetIf(ctx, ThemeSlot.IconSecondary, Black, force);   // traced icon body
+            SetIf(ctx, ThemeSlot.SettingsBackground, Black, force);
+            SetIf(ctx, ThemeSlot.EntryViewBackground, Black, force);
 
             // Everything else -> pure yellow.
             SetIf(ctx, ThemeSlot.PageText, Yellow, force);
@@ -88,6 +90,11 @@ namespace keepass2android.Theming
             SetIf(ctx, ThemeSlot.EntryGroupPath, Yellow, force);
             SetIf(ctx, ThemeSlot.GroupTitle, Yellow, force);
             SetIf(ctx, ThemeSlot.GroupSubtitle, Yellow, force);
+            SetIf(ctx, ThemeSlot.SettingsTitle, Yellow, force);
+            SetIf(ctx, ThemeSlot.SettingsSubtitle, Yellow, force);
+            SetIf(ctx, ThemeSlot.SettingsCategory, Yellow, force);
+            SetIf(ctx, ThemeSlot.EntryFieldLabel, Yellow, force);
+            SetIf(ctx, ThemeSlot.EntryFieldValue, Yellow, force);
         }
 
         private static void SetIf(Context ctx, ThemeSlot slot, int argb, bool force)
