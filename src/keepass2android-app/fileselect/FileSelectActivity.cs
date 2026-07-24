@@ -92,6 +92,9 @@ namespace keepass2android
       var collapsingToolbar = FindViewById<CollapsingToolbarLayout>(Resource.Id.collapsing_toolbar);
       collapsingToolbar.Title = "";
       SetSupportActionBar(FindViewById<AndroidX.AppCompat.Widget.Toolbar>(Resource.Id.toolbar));
+
+      // Fork (白い熊 鍵暗号 UI): tint the title row + status bar.
+      Window?.DecorView?.Post(() => keepass2android.Theming.Kp2aTheme.ApplyToolbarChrome(this, null));
       SupportActionBar.Title = "";
 
 

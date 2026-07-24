@@ -58,6 +58,12 @@ else
 fi
 
 # --- build (native + java + nuget + manifestlink + signed publish) --------------------------------
+# MSBuild's incremental packaging has produced stale signed APKs (old versionCode/code) even though
+# `dotnet publish` ran — purge the packaging outputs so the APK is always regenerated.
+rm -rf "${PUBLISH_DIR}"
+rm -f src/keepass2android-app/bin/Release/net9.0-android/*.apk
+rm -f src/keepass2android-app/obj/Release/net9.0-android/android/bin/*.apk
+
 make apk Flavor="${FLAVOR}" Configuration=Release "${MAKE_SIGN_ARGS[@]}"
 
 # --- locate the signed APK ------------------------------------------------------------------------
@@ -66,6 +72,16 @@ apk="$(ls -t "${PUBLISH_DIR}"/*-Signed.apk 2>/dev/null | head -1 || true)"
 if [[ -z "$apk" ]]; then
   echo "ERROR: no APK found in ${PUBLISH_DIR}. Inspect the build output above." >&2
   exit 1
+fi
+
+# --- verify the APK really carries the version we set out to build --------------------------------
+aapt_bin="$(ls "${ANDROID_SDK_ROOT}"/build-tools/*/aapt 2>/dev/null | tail -1 || true)"
+if [[ -n "$aapt_bin" ]]; then
+  built_vcode="$("$aapt_bin" dump badging "$apk" 2>/dev/null | grep -oE "versionCode='[0-9]+'" | grep -oE '[0-9]+' | head -1)"
+  if [[ "$built_vcode" != "$vcode" ]]; then
+    echo "ERROR: stale build — APK has versionCode ${built_vcode}, expected ${vcode}. Not copying." >&2
+    exit 1
+  fi
 fi
 
 # --- copy to ~/tmp with the fork filename ---------------------------------------------------------

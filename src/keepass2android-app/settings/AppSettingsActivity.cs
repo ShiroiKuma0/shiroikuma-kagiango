@@ -1133,6 +1133,12 @@ namespace keepass2android
 
       _parentActivity.SetContentView(Resource.Layout.preference);
 
+      // Fork (白い熊 鍵暗号 UI): NoActionBar theme + our own toolbar, so the title row obeys the
+      // runtime colour overrides (the Material 3 ActionBar ignores them).
+      var toolbar = _parentActivity.FindViewById<Toolbar>(Resource.Id.settings_toolbar);
+      if (toolbar != null)
+        _parentActivity.SetSupportActionBar(toolbar);
+
       if (savedInstanceState == null)
       {
         _parentActivity.SupportFragmentManager
@@ -1146,6 +1152,25 @@ namespace keepass2android
       }
 
       _parentActivity.SupportActionBar?.SetDisplayHomeAsUpEnabled(true);
+
+      // Fork (白い熊 鍵暗号 UI): theme the settings surface — background, title row, and every
+      // preference fragment as its view is (re)created.
+      keepass2android.Theming.Kp2aTheme.ApplyBackground(
+          _parentActivity.FindViewById(Android.Resource.Id.Content), keepass2android.Theming.ThemeSlot.SettingsBackground);
+      _parentActivity.SupportFragmentManager.RegisterFragmentLifecycleCallbacks(new SettingsThemeCallbacks(), true);
+      _parentActivity.Window?.DecorView?.Post(() =>
+          keepass2android.Theming.Kp2aTheme.ApplyToolbarChrome(_parentActivity, null));
+    }
+
+    // Fork (白い熊 鍵暗号 UI): applies the settings-page slots to each preference fragment.
+    private class SettingsThemeCallbacks : FragmentManager.FragmentLifecycleCallbacks
+    {
+      public override void OnFragmentViewCreated(FragmentManager fm, AndroidX.Fragment.App.Fragment f, View v, Bundle savedInstanceState)
+      {
+        keepass2android.Theming.Kp2aTheme.ApplyBackground(v, keepass2android.Theming.ThemeSlot.SettingsBackground);
+        if (f is PreferenceFragmentCompat pf)
+          keepass2android.Theming.Kp2aTheme.ApplyPreferenceList(pf.ListView);
+      }
     }
 
     protected void OnSaveInstanceState(Bundle outState)
@@ -1208,7 +1233,7 @@ namespace keepass2android
   /// <summary>
   /// Activity to configure the application, without database settings. Does not require an unlocked database, or close when the database is locked
   /// </summary>
-  [Activity(Label = "@string/app_name", Theme = "@style/Kp2aTheme_BlueActionBar", ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.Keyboard | ConfigChanges.KeyboardHidden)]
+  [Activity(Label = "@string/app_name", Theme = "@style/Kp2aTheme_BlueNoActionBar", ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.Keyboard | ConfigChanges.KeyboardHidden)]
   public class AppSettingsActivity : LockingActivity, PreferenceFragmentCompat.IOnPreferenceStartFragmentCallback, FragmentManager.IOnBackStackChangedListener
   {
     private ActivityDesign _design;
@@ -1233,8 +1258,8 @@ namespace keepass2android
     {
       _design.ApplyTheme();
       base.OnCreate(savedInstanceState);
-      new Util.InsetListener(FindViewById(Resource.Id.settings)).Apply();
-
+      // Fork (白い熊 鍵暗号 UI): insets are handled by fitsSystemWindows on the layout root
+      // (preference.axml now hosts its own toolbar), matching the group screens.
     }
 
     public SettingsFragmentManager settingsFragmentManager;

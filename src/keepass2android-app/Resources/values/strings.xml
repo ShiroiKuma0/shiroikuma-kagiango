@@ -61,6 +61,15 @@
   <string name="theme_fab_background">Background</string>
   <string name="theme_fab_border">Border</string>
   <string name="theme_fab_icon">Icon</string>
+  <string name="theme_section_settings">Settings pages</string>
+  <string name="theme_settings_background">Background</string>
+  <string name="theme_settings_title">Item title</string>
+  <string name="theme_settings_subtitle">Item subtitle</string>
+  <string name="theme_settings_category">Category header</string>
+  <string name="theme_section_entryview">Entry view</string>
+  <string name="theme_entryview_background">Background</string>
+  <string name="theme_entryview_label">Field labels</string>
+  <string name="theme_entryview_value">Field values</string>
   <string name="theme_app_font">App font</string>
   <string name="theme_window_background">Background</string>
   <string name="theme_toolbar_background">Toolbar background</string>

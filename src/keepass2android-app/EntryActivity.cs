@@ -98,7 +98,7 @@ namespace keepass2android
 
 
   [Activity(Label = "@string/app_name", ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.Keyboard | ConfigChanges.KeyboardHidden,
-      Theme = "@style/Kp2aTheme_ActionBar")]
+      Theme = "@style/Kp2aTheme_NoActionBar")]
   public class EntryActivity : LockCloseActivity, IProgressUiProvider
   {
     public const String KeyEntry = "entry";
@@ -233,6 +233,9 @@ namespace keepass2android
     protected void SetEntryView()
     {
       SetContentView(Resource.Layout.entry_view);
+      // Fork (白い熊 鍵暗号 UI): NoActionBar theme + our own toolbar, so the title row obeys the
+      // runtime colour overrides (the Material 3 ActionBar ignores them).
+      SetSupportActionBar(FindViewById<AndroidX.AppCompat.Widget.Toolbar>(Resource.Id.entry_toolbar));
     }
 
     protected void SetupEditButtons()
@@ -335,6 +338,7 @@ namespace keepass2android
       }
 
       SetPasswordStyle();
+      ThemeEntryView();
 
       //update the Entry output in the App database and notify the CopyToClipboard service
 
@@ -1060,6 +1064,75 @@ namespace keepass2android
       PopulatePreviousVersions();
 
       SetPasswordStyle();
+
+      ThemeEntryView();
+    }
+
+    // Fork (白い熊 鍵暗号 UI): the entry-view colour/font overrides — background, edit FAB, and a
+    // walk over the field table (labels vs. values, traced icon tint, accent on buttons/progress).
+    private static readonly HashSet<int> EntryLabelIds = new HashSet<int>
+    {
+      Resource.Id.entry_group_name_label, Resource.Id.entry_user_name_label, Resource.Id.entry_url_label,
+      Resource.Id.entry_password_label, Resource.Id.entry_totp_label, Resource.Id.entry_comment_label,
+      Resource.Id.entry_tags_label, Resource.Id.entry_override_url_label, Resource.Id.entry_created_label,
+      Resource.Id.entry_expires_label, Resource.Id.entry_modified_label,
+      Resource.Id.entry_binaries_header, Resource.Id.entry_history_header,
+      Resource.Id.entry_title // extra-string titles (entry_extrastring_title.xml)
+    };
+
+    private void ThemeEntryView()
+    {
+      try
+      {
+        Theming.Kp2aTheme.ApplyBackground(FindViewById(Resource.Id.main_content), Theming.ThemeSlot.EntryViewBackground);
+        Theming.Kp2aTheme.ApplyBackground(FindViewById(Resource.Id.entry_scroll), Theming.ThemeSlot.EntryViewBackground);
+        Theming.Kp2aTheme.ApplyFab(FindViewById(Resource.Id.entry_edit));
+        var table = FindViewById<ViewGroup>(Resource.Id.entry_table);
+        if (table != null)
+          ThemeEntryViewRecursive(table);
+      }
+      catch (Exception e)
+      {
+        Kp2aLog.Log("Theme: ThemeEntryView failed: " + e);
+      }
+    }
+
+    private void ThemeEntryViewRecursive(View v)
+    {
+      if (v is Button btn)
+      {
+        if (Theming.Kp2aTheme.TryColor(this, Theming.ThemeSlot.Accent, out var accent))
+        {
+          btn.SetTextColor(accent);
+          if (btn is Google.Android.Material.Button.MaterialButton mb)
+          {
+            mb.IconTint = Android.Content.Res.ColorStateList.ValueOf(accent);
+            mb.StrokeColor = Android.Content.Res.ColorStateList.ValueOf(accent);
+          }
+        }
+      }
+      else if (v is TextView tv)
+      {
+        bool isLabel = EntryLabelIds.Contains(tv.Id);
+        Theming.Kp2aTheme.ApplyColorAndFont(tv,
+            isLabel ? Theming.ThemeSlot.EntryFieldLabel : Theming.ThemeSlot.EntryFieldValue, this);
+      }
+      else if (v is ProgressBar pb)
+      {
+        if (Theming.Kp2aTheme.TryColor(this, Theming.ThemeSlot.Accent, out var accent))
+          pb.ProgressTintList = Android.Content.Res.ColorStateList.ValueOf(accent);
+      }
+      else if (v is ImageView iv)
+      {
+        if (Theming.Kp2aTheme.TryColor(this, Theming.ThemeSlot.IconMain, out var icon))
+          iv.SetColorFilter(icon);
+      }
+
+      if (v is ViewGroup vg)
+      {
+        for (int i = 0; i < vg.ChildCount; i++)
+          ThemeEntryViewRecursive(vg.GetChildAt(i));
+      }
     }
 
     private async Task UpdateTotpCountdown()
@@ -1390,6 +1463,9 @@ namespace keepass2android
 
       MenuInflater inflater = MenuInflater;
       inflater.Inflate(Resource.Menu.entry, menu);
+
+      // Fork (白い熊 鍵暗号 UI): tint the title row background/title + menu icons.
+      Window.DecorView.Post(() => Theming.Kp2aTheme.ApplyToolbarChrome(this, menu));
 
       lock (_pendingMenuOptions)
       {

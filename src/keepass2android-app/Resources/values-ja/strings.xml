@@ -60,6 +60,15 @@
   <string name="theme_fab_background">背景</string>
   <string name="theme_fab_border">枠線</string>
   <string name="theme_fab_icon">アイコン</string>
+  <string name="theme_section_settings">設定ページ</string>
+  <string name="theme_settings_background">背景</string>
+  <string name="theme_settings_title">項目タイトル</string>
+  <string name="theme_settings_subtitle">項目サブタイトル</string>
+  <string name="theme_settings_category">カテゴリ見出し</string>
+  <string name="theme_section_entryview">エントリ表示</string>
+  <string name="theme_entryview_background">背景</string>
+  <string name="theme_entryview_label">項目ラベル</string>
+  <string name="theme_entryview_value">項目の値</string>
   <string name="theme_app_font">アプリのフォント</string>
   <string name="theme_window_background">背景</string>
   <string name="theme_toolbar_background">ツールバーの背景</string>

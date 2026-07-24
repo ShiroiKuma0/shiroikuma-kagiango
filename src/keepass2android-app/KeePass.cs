@@ -126,6 +126,10 @@ namespace keepass2android
 
 
       Kp2aLog.Log("KeePass.OnCreate");
+
+      // Fork (白い熊 鍵暗号 UI): tint the title row + status bar (this screen sits under the
+      // change-log dialog on updates).
+      Window?.DecorView?.Post(() => keepass2android.Theming.Kp2aTheme.ApplyToolbarChrome(this, null));
     }
 
     protected override void OnResume()
