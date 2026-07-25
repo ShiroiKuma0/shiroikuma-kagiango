@@ -1,7 +1,11 @@
 # 白い熊 鍵暗号 — changes on top of keepass2android
 
-Fork of [keepass2android](https://github.com/PhilippC/keepass2android) `1.15-r2`, branch `custom`.
-Everything below is on top of stock. Current release: **1.15-r2+13** (2026-07-24).
+Fork of [keepass2android](https://github.com/PhilippC/keepass2android) `1.15-r3`, branch `custom`.
+Everything below is on top of stock. Current release: **1.15-r3+2** (2026-07-25).
+
+Rebased onto upstream `1.15-r3` (versionCode 251), which brings the #3066 fix — background sync no
+longer loses the keyfile — plus Crowdin translation updates. The fork build counter restarts at `+1`
+on each new upstream line; versionCode `<UPSTREAM_CODE>*10000+N` keeps upgrades monotonic across it.
 
 ## Fork identity & packaging
 - App id **`shiroikuma.kagiango`**, launcher label **白い熊 鍵暗号** — installs side-by-side with the official Keepass2Android.
@@ -19,6 +23,7 @@ Everything below is on top of stock. Current release: **1.15-r2+13** (2026-07-24
 - External-font picker renders each font name in its own glyphs; app-wide global font; per-slot font family/weight/size.
 - App-language selector at the top of the page.
 - Signature palette: pure `#000000` backgrounds, pure `#FFFF00` text/borders/icons.
+- **kxkb heading style**: a section is a full-width 1px spacer marking the border with the previous group, then a 20 sp bold accent title carrying a **word-width** underline; sub-headings are the same one size down (17 sp, 1.5 dp underline), indented and without the full-width spacer.
 
 ## Themed surfaces (black-yellow everywhere)
 - **Unlock screen** (`PasswordActivity`): background, labels, password field, buttons, filename, collapsing-toolbar title.
@@ -30,6 +35,30 @@ Everything below is on top of stock. Current release: **1.15-r2+13** (2026-07-24
 - **Start screen, database-selection screens, QuickUnlock**: title row and status bar themed.
 - **Dialogs**: generic alert-dialog theming (black rounded surface, 2dp yellow border, themed title/message, accent buttons).
 - **Launcher icon**: black-yellow (traced lock mark in `#FFFF00`).
+
+## Export / Import — one-ZIP settings backup
+- **Export / Import is the first section of the UI page** (Kōjiki-style placement): the panel entry, the backup folder, and — directly beneath them rather than in a section of their own — the automation switch and token.
+- **The panel** (`ExportImportDialog`): a bordered black-and-yellow box carrying title, intro, an all-files-access prompt when that permission is missing, the tappable backup-folder box, the newest-backup line (queried each time the panel opens, with its size), 全選択 plus the category checkboxes, and the button bar.
+- **Button bar in ArcaneChat form**: Cancel alone on the left, Import and Export grouped on the right, all round pills — black fill, thin accent stroke, accent text and ripple.
+- **Backup folder** is shown in warn-red until it is set — in the panel *and* on the UI page row — and can be typed in or picked with a built-in folder browser. It is stored in its own prefs file, so it never travels inside a backup.
+- **Eleven categories**, mirroring the app's own settings screens: colors (UI page), fonts (UI page) with **imported font files** as an independently selectable sub-option, display & language, security, QuickUnlock, password access (keyboard/autofill/TOTP), file handling, TrayTotp, password-generator profiles, debug log.
+- Category keys are **scanned from the preference XML screens at runtime**, so a setting a future upstream release adds is carried by the next rebase rather than by remembering to edit a list.
+- **One ZIP per export**, named `shiroikuma-kagiango_<yyyy-MM-dd_HH-mm-ss>.zip` (the sister-app family convention — no version, no infix, no suffix), holding `manifest.json` plus one `<id>.json` per category and the font files under `fonts/`.
+- **Import merges** per key rather than wiping, so a restore never destroys settings a category didn't cover and re-importing the same file is idempotent; categories absent from the archive are skipped, and one failing category never aborts the others.
+- **Security — the export is an allow-list, not a deny-list.** Only keys a category claims are written. On top of that, `kp2a_ioc_*` (the biometric unlock's Android-Keystore-wrapped master password, with its `_iv`/`_mode` companions) and `KP2A.PasswordAct.AuxFileIoc*` (serialized `IOConnectionInfo`s, which can carry a remote-storage user name and password) are excluded outright. The same filter runs on **import**, so a hand-edited ZIP cannot inject a credential key back into the app.
+- **Dialog chain**: acknowledging a successful export or import closes the info dialog, the panel, and the UI settings page together; the import dialog offers "Restart now" (relaunch so every restored setting is re-read) and "Later", both of which close the chain. Failures ("Export failed…", "No categories selected.") close only themselves, leaving the panel open to fix and retry.
+- Info dialogs use the fork's black surface with the 2 dp yellow border.
+- `MANAGE_EXTERNAL_STORAGE` is declared so the backup folder can be anywhere on shared storage.
+
+## 保存復元 automation contract
+- `StateExportReceiver` implements the sister-app wire contract on `shiroikuma.kagiango.action.EXPORT_STATE` and `…LIST_CATEGORIES`, so 自由作業盤's 保存復元 project can back this app up headlessly in one run.
+- `EXPORT_STATE` runs the ordinary category ZIP export with no Activity: extras `token`, optional `path` (an absolute directory that overrides the configured folder), optional `items` (comma list of category ids; absent = everything), optional `progress_action`, plus the `reply_action` / `reply_package` / `reply_id` trio.
+- `LIST_CATEGORIES` answers `id<TAB>label` per line, with the parent id as a third field on sub-options (`fonts.files` under `fonts`).
+- **Reply is a fresh broadcast** with `FLAG_INCLUDE_STOPPED_PACKAGES` — no `ResultReceiver`, `PendingIntent` or `Messenger`, and no reliance on the ordered-broadcast result, both of which EMUI severs between third-party apps. Exactly one terminal reply per request, behind a single-fire interlock; the work runs on a background thread under `GoAsync()`.
+- **Progress carries real counts**, never a percentage (`区分 3/11 — …` with structured `current`/`total`/`unit`), throttled to one every 500 ms with the completion one always sent.
+- Distinct, debuggable errors: `automation disabled`, `bad token`, `device-locked`, `no-directory`, `no-storage-access`, `unknown category in items: …`.
+- `AutomationAuth`: master switch **defaulting to off** plus a 24-byte `SecureRandom` token, hex-encoded, generated lazily on first read so the row always shows a value, compared **constant-time**. It lives in its own prefs file and is therefore never part of an export.
+- The token row shows the token abbreviated, copies the whole thing on tap, and carries a **Regenerate** action that warns pasted copies must be updated.
 
 ## Change log
 - Fork entries (dated, newest first) merged **chronologically** with the upstream change log in one dialog.
