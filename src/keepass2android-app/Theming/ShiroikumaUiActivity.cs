@@ -19,11 +19,13 @@ using System.Linq;
 using Android.App;
 using Android.Content;
 using Android.Content.PM;
+using Android.Content.Res;
 using Android.Graphics;
 using Android.Graphics.Drawables;
 using Android.OS;
 using Android.Views;
 using Android.Widget;
+using keepass2android.Backup;
 using keepass2android.Theming;
 
 namespace keepass2android
@@ -62,6 +64,13 @@ namespace keepass2android
         private readonly Dictionary<string, FontRowRefs> _fontRows = new Dictionary<string, FontRowRefs>();
         private readonly Dictionary<ThemeSlot, View> _swatches = new Dictionary<ThemeSlot, View>();
 
+        // Export / Import section rows that are refreshed in place rather than by rebuilding the page.
+        private TextView _backupDirSummary;
+        private TextView _automationTokenSummary;
+
+        /// <summary>The warning colour for "no backup folder set" — the same red the panel uses.</summary>
+        private static readonly Color BackupWarn = new Color(unchecked((int)0xFFFF6666));
+
         public ShiroikumaUiActivity()
         {
             _design = new ActivityDesign(this);
@@ -96,7 +105,12 @@ namespace keepass2android
             _fontRows.Clear();
             _swatches.Clear();
 
-            // App language (top of page).
+            // Export / Import first, as on the Kōjiki UI page: backing the app up is what 白い熊 reaches
+            // for most, and the 保存復元 automation rows belong under it rather than in a section of
+            // their own — every sister app puts backup in the same place.
+            AddBackupSection();
+
+            // App language.
             AddSection(Resource.String.theme_section_language);
             AddLanguageRow();
 
@@ -167,26 +181,36 @@ namespace keepass2android
                 AddFontRows(info.Key, level + (info.HasColor ? 1 : 0), Resource.String.theme_font_family);
         }
 
+        /// <summary>
+        /// A top-level heading in the kxkb house style: a full-width hairline spacer marking the border
+        /// with the previous group, then the bold accent title carrying a word-width underline.
+        /// </summary>
         private void AddSection(int titleRes)
         {
             var v = LayoutInflater.Inflate(Resource.Layout.item_theme_section, _container, false);
             var title = v.FindViewById<TextView>(Resource.Id.section_title);
-            var divider = v.FindViewById<View>(Resource.Id.section_divider);
+            var separator = v.FindViewById<View>(Resource.Id.section_separator);
+            var underline = v.FindViewById<View>(Resource.Id.section_divider);
             title.Text = GetString(titleRes);
             Color accent = Kp2aTheme.AccentOr(this, new Color(title.CurrentTextColor));
             title.SetTextColor(accent);
             ApplyPageFont(title);
-            divider.SetBackgroundColor(accent);
+            separator.SetBackgroundColor(accent);
+            underline.SetBackgroundColor(accent);
             _container.AddView(v);
         }
 
+        /// <summary>A sub-heading: indented, word-width underline, and no full-width spacer.</summary>
         private void AddSubgroup(int titleRes, int level)
         {
             var v = LayoutInflater.Inflate(Resource.Layout.item_theme_subgroup, _container, false);
             var title = v.FindViewById<TextView>(Resource.Id.subgroup_title);
+            var underline = v.FindViewById<View>(Resource.Id.subgroup_divider);
             title.Text = GetString(titleRes);
-            title.SetTextColor(Kp2aTheme.AccentOr(this, new Color(title.CurrentTextColor)));
+            Color accent = Kp2aTheme.AccentOr(this, new Color(title.CurrentTextColor));
+            title.SetTextColor(accent);
             ApplyPageFont(title);
+            underline.SetBackgroundColor(accent);
             Indent(v, level);
             _container.AddView(v);
         }
@@ -241,6 +265,114 @@ namespace keepass2android
             ApplyPageTextColor(sample);
             _fontRows[key] = new FontRowRefs { Family = family, Weight = weight, Size = size, Sample = sample };
             RefreshFontRows(key);
+        }
+
+        // ---- export / import ------------------------------------------------------------------------
+
+        /// <summary>
+        /// The first section of the page: the Export / Import panel, the backup folder, and — directly
+        /// beneath those, never as a section of its own — the 保存復元 automation switch and token.
+        /// </summary>
+        private void AddBackupSection()
+        {
+            AddSection(Resource.String.theme_section_backup);
+
+            AddDetailRow(Resource.String.backup_open_row, GetString(Resource.String.backup_open_desc), 1,
+                OpenExportImport, out _, out _);
+
+            AddDetailRow(Resource.String.backup_dir_row, "", 1, EditBackupDir, out _backupDirSummary, out _);
+            RefreshBackupDir();
+
+            AddSwitchRow(Resource.String.automation_title, Resource.String.automation_summary, 1,
+                AutomationAuth.IsEnabled(this), value => AutomationAuth.SetEnabled(this, value));
+
+            AddTokenRow(1);
+        }
+
+        /// <summary>The folder, shown in warn-red until one is set — as the panel shows it.</summary>
+        private void RefreshBackupDir()
+        {
+            if (_backupDirSummary == null)
+                return;
+            string dir = BackupConfig.GetExportDir(this);
+            _backupDirSummary.Visibility = ViewStates.Visible;
+            _backupDirSummary.Text = dir ?? GetString(Resource.String.backup_dir_unset);
+            if (dir == null)
+                _backupDirSummary.SetTextColor(BackupWarn);
+            else
+                ApplyPageTextColor(_backupDirSummary);
+        }
+
+        private void OpenExportImport() =>
+            ExportImportDialog.Show(this, onChainFinished: Finish, onDismissed: RefreshBackupDir);
+
+        /// <summary>Set the folder from the page itself, without opening the whole panel first.</summary>
+        private void EditBackupDir() =>
+            ExportImportDialog.EditDirectory(this, RefreshBackupDir);
+
+        private void AddTokenRow(int level)
+        {
+            AddDetailRow(Resource.String.automation_token_title,
+                AutomationAuth.Abbreviate(AutomationAuth.Token(this)), level,
+                CopyAutomationToken, out _automationTokenSummary, out var action);
+
+            action.Visibility = ViewStates.Visible;
+            action.Text = GetString(Resource.String.automation_token_regenerate);
+            action.SetTextColor(Kp2aTheme.AccentOr(this, new Color(action.CurrentTextColor)));
+            ApplyPageFont(action);
+            action.Click += (s, e) =>
+            {
+                string fresh = AutomationAuth.RegenerateToken(this);
+                _automationTokenSummary.Text = AutomationAuth.Abbreviate(fresh);
+                Toast.MakeText(this, Resource.String.automation_token_regenerated, ToastLength.Long).Show();
+            };
+        }
+
+        private void CopyAutomationToken()
+        {
+            var clipboard = (ClipboardManager)GetSystemService(ClipboardService);
+            if (clipboard != null)
+                clipboard.PrimaryClip = ClipData.NewPlainText(
+                    GetString(Resource.String.automation_token_title), AutomationAuth.Token(this));
+            Toast.MakeText(this, Resource.String.automation_token_copied, ToastLength.Short).Show();
+        }
+
+        /// <summary>A row with a second line, an optional right-hand action and an optional widget slot.</summary>
+        private View AddDetailRow(int labelRes, string summary, int level, Action onClick,
+            out TextView summaryView, out TextView actionView)
+        {
+            var v = LayoutInflater.Inflate(Resource.Layout.item_theme_detail, _container, false);
+            var label = v.FindViewById<TextView>(Resource.Id.row_label);
+            summaryView = v.FindViewById<TextView>(Resource.Id.row_summary);
+            actionView = v.FindViewById<TextView>(Resource.Id.row_action);
+
+            label.Text = GetString(labelRes);
+            summaryView.Text = summary ?? "";
+            summaryView.Visibility = string.IsNullOrEmpty(summary) ? ViewStates.Gone : ViewStates.Visible;
+            ApplyPageLabel(label);
+            ApplyPageLabel(summaryView);
+
+            if (onClick != null)
+                v.Click += (s, e) => onClick();
+            Indent(v, level);
+            _container.AddView(v);
+            return v;
+        }
+
+        private void AddSwitchRow(int labelRes, int summaryRes, int level, bool initial, Action<bool> onChanged)
+        {
+            var v = AddDetailRow(labelRes, GetString(summaryRes), level, null, out _, out _);
+            var widget = v.FindViewById<FrameLayout>(Resource.Id.row_widget);
+
+            var toggle = new AndroidX.AppCompat.Widget.SwitchCompat(this) { Checked = initial };
+            Color accent = Kp2aTheme.AccentOr(this, new Color(toggle.CurrentTextColor));
+            toggle.ThumbTintList = ColorStateList.ValueOf(accent);
+            toggle.TrackTintList = ColorStateList.ValueOf(
+                new Color(Color.Argb(0x80, accent.R, accent.G, accent.B)));
+            widget.AddView(toggle);
+
+            toggle.CheckedChange += (s, e) => onChanged(e.IsChecked);
+            v.Click += (s, e) => toggle.Checked = !toggle.Checked;
         }
 
         // ---- refresh ------------------------------------------------------------------------------
