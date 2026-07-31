@@ -10,7 +10,7 @@ A fork of [keepass2android](https://github.com/PhilippC/keepass2android) with **
 
 Installs **side-by-side** with Keepass2Android (app id `shiroikuma.kagiango`).
 
-**📥 Latest release: [`1.15-r3+2`](https://github.com/ShiroiKuma0/shiroikuma-kagiango/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-kagiango/releases)
+**📥 Latest release: [`1.15-r3+3`](https://github.com/ShiroiKuma0/shiroikuma-kagiango/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-kagiango/releases)
 
 </div>
 
@@ -27,7 +27,9 @@ The first section of the UI page backs the app up and restores it. Tick what you
 
 Because this is a password manager, the export is an **allow-list**: only keys a category claims are ever written, and the biometric unlock's Keystore-wrapped master password and any stored remote-storage logins are excluded outright — on import as well as export, so a hand-edited archive cannot inject a credential back in. Your database, its master password, and the backup folder itself never travel inside a backup.
 
-A token-gated intent lets a sister app run the same export **headlessly** — off by default, with the token shown (and copyable) right below the export rows.
+An archive is built under a `.part` name and renamed only once it is whole, so a run that fails — or is stopped — leaves the backup folder exactly as it found it: no short archive, no stray partial.
+
+A token-gated intent lets a sister app run the same export **headlessly** — off by default, with the token shown (and copyable) right below the export rows. The app states which categories start ticked, so the caller's picker opens on our answer rather than a guess, and a running export can be **cancelled from outside**: it unwinds at the next category boundary and takes its partial file with it.
 
 ---
 
