@@ -48,6 +48,15 @@ namespace keepass2android.Backup
         public bool IsFiles;
 
         /// <summary>
+        /// Whether this category starts <b>ticked</b> — in the app's own panel and in the automation
+        /// contract's optional fourth <c>on|off</c> field alike, so 保存復元's item picker and the
+        /// Export/Import sheet open on the same answer. <c>true</c> unless a category is derived,
+        /// disposable or regenerated on use; the field defaults to <c>true</c>, so every category that
+        /// does not say otherwise is unchanged.
+        /// </summary>
+        public bool DefaultSelected = true;
+
+        /// <summary>
         /// Every category of this app, in the order they appear in the panel and in the ZIP. The split
         /// follows the app's own settings structure — one category per settings screen — plus the two
         /// 白い熊 UI page groups (colours, fonts) and the code-managed password-generator profiles.
@@ -79,8 +88,10 @@ namespace keepass2android.Backup
                                  PrefXml = new[] { Resource.Xml.pref_app_traytotp } },
             new BackupCategory { Id = "password_generator", LabelRes = Resource.String.backup_cat_password_generator,
                                  ExtraKeys = new[] { "password_generator_profiles" } },
+            // Unticked by default: the debug log is derived, disposable and regenerated on use.
             new BackupCategory { Id = "debug",              LabelRes = Resource.String.backup_cat_debug,
-                                 PrefXml = new[] { Resource.Xml.pref_app_debug } },
+                                 PrefXml = new[] { Resource.Xml.pref_app_debug },
+                                 DefaultSelected = false },
         };
 
         public static BackupCategory ById(string id) => All.FirstOrDefault(c => c.Id == id);
@@ -92,6 +103,12 @@ namespace keepass2android.Backup
 
         /// <summary>Ids of every category, parents before their children (the contract's list order).</summary>
         public static string[] AllIds => All.Select(c => c.Id).ToArray();
+
+        /// <summary>
+        /// The default set — every category flagged <see cref="DefaultSelected"/>. This is what an
+        /// automation request with no <c>items</c> extra exports, and what both pickers open on.
+        /// </summary>
+        public static string[] DefaultIds => All.Where(c => c.DefaultSelected).Select(c => c.Id).ToArray();
 
         // ---- what may leave the app ------------------------------------------------------------------
 

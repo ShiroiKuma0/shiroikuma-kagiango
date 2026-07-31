@@ -34,6 +34,15 @@ namespace keepass2android.Backup
         public readonly List<string> Errors = new List<string>();
         public int CategoryCount;
         public bool Ok => Errors.Count == 0;
+
+        /// <summary>Set when the run was stopped before it was whole — nothing was left on disk.</summary>
+        public bool Cancelled;
+
+        /// <summary>Where the finished ZIP landed. Null when the run was cancelled or wrote no file.</summary>
+        public string Path;
+
+        /// <summary>Size of <see cref="Path"/> in bytes.</summary>
+        public long Size;
     }
 
     /// <summary>
@@ -69,6 +78,12 @@ namespace keepass2android.Backup
 
         private const string ManifestEntry = "manifest.json";
         private const string FontsEntryDir = "fonts/";
+
+        /// <summary>
+        /// What a half-written archive is called until it is whole. It deliberately falls outside
+        /// <see cref="IsBackupFileName"/>, so a partial can never be offered for import.
+        /// </summary>
+        private const string PartSuffix = ".part";
 
         public static string ExportFileName(DateTime now) =>
             ExportPrefix + now.ToString("yyyy-MM-dd_HH-mm-ss", CultureInfo.InvariantCulture) + ".zip";
@@ -116,12 +131,71 @@ namespace keepass2android.Backup
         // ---- export ----------------------------------------------------------------------------------
 
         /// <summary>
+        /// Write one backup into <paramref name="dir"/> — the single entry point both callers use, so the
+        /// partial-file discipline exists exactly once.
+        /// <para>
+        /// The archive is built under <c>&lt;name&gt;.part</c> and renamed only once it is whole. A run that
+        /// is cancelled or throws therefore leaves the backup folder <b>exactly as it found it</b>: no short
+        /// archive, no stray partial. On success <see cref="BackupResult.Path"/> and
+        /// <see cref="BackupResult.Size"/> describe the finished file; on cancel
+        /// <see cref="BackupResult.Cancelled"/> is set and <c>Path</c> stays null.
+        /// </para>
+        /// </summary>
+        public static BackupResult ExportToDirectory(Context ctx, ICollection<string> categoryIds, string dir,
+            Action<int, int, string> onProgress = null, Func<bool> isCancelled = null)
+        {
+            Directory.CreateDirectory(dir);
+            string path = System.IO.Path.Combine(dir, ExportFileName(DateTime.Now));
+            string partPath = path + PartSuffix;
+
+            BackupResult result;
+            try
+            {
+                using (var stream = File.Create(partPath))
+                    result = Export(ctx, categoryIds, stream, onProgress, isCancelled);
+
+                // Checked once more after the loop: a cancel that lands while the manifest is being written
+                // must still stop the file from being published under its final name.
+                if (result.Cancelled || (isCancelled != null && isCancelled()))
+                {
+                    result.Cancelled = true;
+                    return result;
+                }
+
+                File.Move(partPath, path, true);
+                result.Path = path;
+                result.Size = new FileInfo(path).Length;
+                return result;
+            }
+            finally
+            {
+                // Cancel, exception or success alike — nothing partial may survive in the backup folder.
+                TryDelete(partPath);
+            }
+        }
+
+        private static void TryDelete(string path)
+        {
+            try
+            {
+                if (File.Exists(path))
+                    File.Delete(path);
+            }
+            catch (Exception e)
+            {
+                Kp2aLog.Log("Backup: could not remove " + path + ": " + e);
+            }
+        }
+
+        /// <summary>
         /// Write the selected <paramref name="categoryIds"/> to <paramref name="output"/> as one backup ZIP.
         /// <paramref name="onProgress"/> is called after each category with (done, total, label) — the
         /// headless path turns those into the contract's real-count progress broadcasts.
+        /// <paramref name="isCancelled"/> is polled <b>between</b> categories: the loop unwinds at the next
+        /// entry boundary, never mid-<c>Write</c>, and never by killing a thread or the process.
         /// </summary>
         public static BackupResult Export(Context ctx, ICollection<string> categoryIds, Stream output,
-            Action<int, int, string> onProgress = null)
+            Action<int, int, string> onProgress = null, Func<bool> isCancelled = null)
         {
             var result = new BackupResult();
             var selected = BackupCategory.All.Where(c => categoryIds.Contains(c.Id)).ToList();
@@ -133,6 +207,11 @@ namespace keepass2android.Backup
             {
                 foreach (var category in selected)
                 {
+                    if (isCancelled != null && isCancelled())
+                    {
+                        result.Cancelled = true;
+                        break;
+                    }
                     string label = ctx.GetString(category.LabelRes);
                     try
                     {
@@ -149,6 +228,14 @@ namespace keepass2android.Backup
                     }
                     done++;
                     onProgress?.Invoke(done, total, label);
+                }
+
+                // A cancelled run gets no manifest: the file is about to be deleted, and nothing
+                // half-described should ever be capable of reading as a finished backup.
+                if (result.Cancelled)
+                {
+                    result.CategoryCount = written.Count;
+                    return result;
                 }
 
                 var manifest = new JSONObject();

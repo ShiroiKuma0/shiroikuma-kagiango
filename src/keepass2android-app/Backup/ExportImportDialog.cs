@@ -64,7 +64,9 @@ namespace keepass2android.Backup
         {
             _activity = activity;
             _onChainFinished = onChainFinished;
-            _selected = new HashSet<string>(BackupCategory.AllIds);
+            // Seeded from the categories' own DefaultSelected flag — the very same answer LIST_CATEGORIES
+            // hands 保存復元, so the in-app sheet and the automation picker open on one set of ticks.
+            _selected = new HashSet<string>(BackupCategory.DefaultIds);
 
             _accent = Kp2aTheme.TryColor(activity, ThemeSlot.Accent, out var a)
                 ? a : new Color(unchecked((int)0xFFFFFF00));
@@ -279,19 +281,16 @@ namespace keepass2android.Backup
 
             var categories = _selected.ToList();
             string dir = _exportDir;
-            string name = Kp2aBackup.ExportFileName(DateTime.Now);
 
             RunInBackground(() =>
             {
-                Directory.CreateDirectory(dir);
-                string path = System.IO.Path.Combine(dir, name);
-                BackupResult result;
-                using (var stream = File.Create(path))
-                    result = Kp2aBackup.Export(_activity, categories, stream);
-                long size = new FileInfo(path).Length;
+                // The same writer the automation path uses: built under a .part name and renamed only once
+                // whole, so a failure here leaves the backup folder exactly as it found it.
+                var result = Kp2aBackup.ExportToDirectory(_activity, categories, dir);
+                string name = System.IO.Path.GetFileName(result.Path);
                 return (Func<string>)(() => string.Format(
                     _activity.GetString(Resource.String.backup_export_done),
-                    name, Kp2aBackup.HumanSize(size), result.CategoryCount) + ErrorSuffix(result));
+                    name, Kp2aBackup.HumanSize(result.Size), result.CategoryCount) + ErrorSuffix(result));
             },
             onDone: body => ShowInfo(Resource.String.backup_export_done_title, body, closeChain: true),
             onFailed: message => ShowInfo(Resource.String.backup_export_failed_title,

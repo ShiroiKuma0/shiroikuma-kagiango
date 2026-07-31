@@ -15,9 +15,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using Android.App;
 using Android.Content;
@@ -36,8 +34,16 @@ namespace keepass2android.Backup
     /// <c>progress_action</c> (optional), plus the reply trio <c>reply_action</c> / <c>reply_package</c> /
     /// <c>reply_id</c>.</item>
     /// <item><c>&lt;pkg&gt;.action.LIST_CATEGORIES</c> — token-gated, instant category enumeration for the
-    /// caller's checkbox picker: <c>id&lt;TAB&gt;label</c> per line, with a third <c>parent-id</c> field on
-    /// sub-options (this app's <c>fonts.files</c> sits under <c>fonts</c>).</item>
+    /// caller's checkbox picker: <c>id&lt;TAB&gt;label&lt;TAB&gt;parent&lt;TAB&gt;on|off</c> per line. The
+    /// third field is the parent id on sub-options (this app's <c>fonts.files</c> sits under <c>fonts</c>)
+    /// and empty otherwise; the fourth says whether the item starts ticked, so the caller's picker opens on
+    /// <b>our</b> answer rather than guessing.</item>
+    /// <item><c>&lt;pkg&gt;.action.CANCEL_EXPORT</c> — stop the export that is running. Extras: <c>token</c>
+    /// (required) and an optional <c>reply_id</c> (absent = whatever is running, unambiguous because two at
+    /// once are forbidden). It <b>sends no reply of its own</b> — fire-and-forget — and is a silent no-op
+    /// when nothing is running or the export already finished, so it is safe to send at any time. The
+    /// cancelled export unwinds at the next entry boundary, deletes its partial file, and answers its own
+    /// original request with <c>ERROR:cancelled</c>.</item>
     /// </list>
     /// <para>
     /// <b>ONE ZIP per request</b>: the single file named by <see cref="Kp2aBackup.ExportFileName"/> is the
@@ -52,26 +58,60 @@ namespace keepass2android.Backup
     /// </para>
     /// </summary>
     [BroadcastReceiver(Exported = true, Enabled = true)]
-    [IntentFilter(new[] { StateExportReceiver.ActionExportState, StateExportReceiver.ActionListCategories })]
+    [IntentFilter(new[] { StateExportReceiver.ActionExportState, StateExportReceiver.ActionListCategories,
+                          StateExportReceiver.ActionCancelExport })]
     public class StateExportReceiver : BroadcastReceiver
     {
         // Built the same way as Intents.LockDatabase: the fork's applicationId is shiroikuma.<PackagePart>,
         // so these are exactly the contract's <pkg>.action.* strings.
         public const string ActionExportState = "shiroikuma." + AppNames.PackagePart + ".action.EXPORT_STATE";
         public const string ActionListCategories = "shiroikuma." + AppNames.PackagePart + ".action.LIST_CATEGORIES";
+        public const string ActionCancelExport = "shiroikuma." + AppNames.PackagePart + ".action.CANCEL_EXPORT";
 
         private const long ProgressThrottleMs = 500;
 
         /// <summary>Guards the single terminal reply, so an async success and a sync error can never race.</summary>
         private int _replied;
 
+        /// <summary>
+        /// The export currently in flight, or null. <b>Static</b> on purpose: every broadcast lands on a
+        /// FRESH receiver instance, so a CANCEL_EXPORT is never delivered to the object running the export —
+        /// it has to find it here. At most one, since the contract forbids two exports at once.
+        /// </summary>
+        private static volatile ExportRun _running;
+
+        /// <summary>
+        /// One in-flight export as the cancel path needs to see it: which request it answers, and whether a
+        /// stop has been asked for. The flag is only ever read between entries by the write loop.
+        /// </summary>
+        private sealed class ExportRun
+        {
+            public readonly string ReplyId;
+            private volatile bool _cancelled;
+
+            public ExportRun(string replyId) { ReplyId = replyId; }
+
+            public bool Cancelled => _cancelled;
+
+            public void Cancel() { _cancelled = true; }
+        }
+
         public override void OnReceive(Context context, Intent intent)
         {
             string action = intent?.Action;
-            if (action != ActionExportState && action != ActionListCategories)
+            if (action != ActionExportState && action != ActionListCategories && action != ActionCancelExport)
                 return;
 
             Context app = context.ApplicationContext;
+
+            // CANCEL_EXPORT answers nothing, so it needs neither a reply channel nor a worker thread: it
+            // flips a flag and returns, which is also the promptest the running export can hear about it.
+            if (action == ActionCancelExport)
+            {
+                CancelExport(app, intent);
+                return;
+            }
+
             string replyAction = intent.GetStringExtra("reply_action");
             string replyPackage = intent.GetStringExtra("reply_package");
             string replyId = intent.GetStringExtra("reply_id");
@@ -134,29 +174,63 @@ namespace keepass2android.Backup
             RunExport(app, intent, replyAction, replyPackage, replyId);
         }
 
-        /// <summary><c>id&lt;TAB&gt;label</c> per line; sub-options add their parent's id as a third field.</summary>
+        /// <summary>
+        /// <c>id&lt;TAB&gt;label&lt;TAB&gt;parent&lt;TAB&gt;on|off</c> per line. Both trailing fields are
+        /// positional, so a top-level item still carries an <b>empty</b> third field to reach the fourth.
+        /// The fourth is this app's own answer to "does this start ticked" — never the caller's guess.
+        /// </summary>
         private static string CategoryLines(Context app)
         {
             var lines = new List<string>();
             foreach (var category in BackupCategory.All)
             {
-                string line = category.Id + "\t" + app.GetString(category.LabelRes);
-                if (category.ParentId != null)
-                    line += "\t" + category.ParentId;
-                lines.Add(line);
+                lines.Add(category.Id + "\t" + app.GetString(category.LabelRes) + "\t" +
+                          (category.ParentId ?? "") + "\t" + (category.DefaultSelected ? "on" : "off"));
             }
             return string.Join("\n", lines);
+        }
+
+        /// <summary>
+        /// Stop the running export. Gated on the token alone, deliberately: the master switch may have been
+        /// turned off after the export started, and refusing to stop it then is exactly the runaway this
+        /// action exists to prevent — while a cancel with nothing running is harmless by construction.
+        /// </summary>
+        private static void CancelExport(Context app, Intent intent)
+        {
+            if (!AutomationAuth.IsTokenValid(app, intent.GetStringExtra("token")))
+            {
+                Kp2aLog.Log("Backup automation: CANCEL_EXPORT with a bad token, ignored");
+                return;
+            }
+
+            // Safe to send at any time: nothing running, or a run that already finished, is a SILENT
+            // no-op — not an error, not a reply, not a crash.
+            var run = _running;
+            if (run == null)
+                return;
+
+            string replyId = intent.GetStringExtra("reply_id");
+            if (!string.IsNullOrEmpty(replyId) && replyId != run.ReplyId)
+            {
+                Kp2aLog.Log("Backup automation: CANCEL_EXPORT names another request, ignored");
+                return;
+            }
+
+            run.Cancel();
+            Kp2aLog.Log("Backup automation: cancel requested");
         }
 
         private void RunExport(Context app, Intent intent,
             string replyAction, string replyPackage, string replyId)
         {
-            // items: absent/empty means everything; every id must be one we actually export.
+            // items: absent/empty means our default set; every id must be one we actually export.
             string items = intent.GetStringExtra("items");
             List<string> categories;
             if (string.IsNullOrWhiteSpace(items))
             {
-                categories = BackupCategory.AllIds.ToList();
+                // Absent still means "our default set" — which is now exactly the categories we answer
+                // LIST_CATEGORIES with as `on`.
+                categories = BackupCategory.DefaultIds.ToList();
             }
             else
             {
@@ -192,13 +266,14 @@ namespace keepass2android.Backup
             string appLabel = app.GetString(AppNames.AppNameResource);
             long lastProgress = 0;
 
-            Directory.CreateDirectory(dir);
-            string path = Path.Combine(dir, Kp2aBackup.ExportFileName(DateTime.Now));
+            // Published where CANCEL_EXPORT can find it, and taken down again in the finally below.
+            var run = new ExportRun(replyId);
+            _running = run;
 
             BackupResult result;
-            using (var stream = File.Create(path))
+            try
             {
-                result = Kp2aBackup.Export(app, categories, stream, (done, total, label) =>
+                result = Kp2aBackup.ExportToDirectory(app, categories, dir, (done, total, label) =>
                 {
                     if (string.IsNullOrEmpty(progressAction))
                         return;
@@ -210,12 +285,26 @@ namespace keepass2android.Backup
                     SendProgress(app, progressAction, replyPackage, replyId, appLabel,
                         string.Format(app.GetString(Resource.String.backup_progress), done, total, label),
                         done, total, app.GetString(Resource.String.backup_progress_unit));
-                });
+                }, () => run.Cancelled);
+            }
+            finally
+            {
+                // Only ever clear our own registration, so a later run's slot is never stolen.
+                if (ReferenceEquals(_running, run))
+                    _running = null;
             }
 
-            long size = new FileInfo(path).Length;
+            if (result.Cancelled)
+            {
+                // The terminal reply for the ORIGINAL request, through the normal channel and under the
+                // same one-reply guard. Sent even though nobody may still be listening: it is what proves
+                // the run ended rather than carrying on unseen. The partial file is already gone.
+                Reply(app, replyAction, replyPackage, replyId, "ERROR:cancelled");
+                return;
+            }
+
             Reply(app, replyAction, replyPackage, replyId,
-                "OK:" + path + "|" + size + "|" + Kp2aBackup.HumanSize(size) + "|" +
+                "OK:" + result.Path + "|" + result.Size + "|" + Kp2aBackup.HumanSize(result.Size) + "|" +
                 result.CategoryCount + " categories");
         }
 
