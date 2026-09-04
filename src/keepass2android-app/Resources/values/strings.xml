@@ -150,13 +150,21 @@
   <string name="backup_cat_tray_totp">TrayTotp</string>
   <string name="backup_cat_password_generator">Password generator profiles</string>
   <string name="backup_cat_debug">Debug log</string>
+  <!-- Shown verbatim in 応用管理\'s row for this app: a password manager whose backup carries no vault
+       must say so, or "✓ backed up" invites exactly the wrong conclusion. -->
+  <string name="backup_contains_note">Settings only — never the database, the master password or a stored login</string>
 
   <string name="automation_title">Automation export</string>
-  <string name="automation_summary">Let a sister-app task run this app\'s export through the token-gated intent.</string>
+  <string name="automation_summary">Let sister apps run this app\'s export and back its settings up — so 白い熊 応用管理 can restore them onto a clean phone.</string>
+  <string name="automation_require_token_title">Use authorization token?</string>
+  <string name="automation_require_token_summary">Off: any sister app may drive the automation. On: a caller must also present the token below. The data door checks the caller\'s package and signing certificate either way.</string>
   <string name="automation_token_title">Automation token</string>
   <string name="automation_token_regenerate">Regenerate</string>
   <string name="automation_token_copied">Token copied to the clipboard</string>
   <string name="automation_token_regenerated">New token generated — update anywhere you pasted the old one.</string>
+  <string name="automation_data_channel_name">Automation data</string>
+  <string name="automation_data_exporting">Writing the settings backup…</string>
+  <string name="automation_data_importing">Restoring the settings backup…</string>
   <string name="app_timeout">App timeout</string>
   <string name="app_timeout_summary">Time before locking database when the app is inactive.</string>
   <string name="show_kill_app">Close-Button</string>

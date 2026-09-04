@@ -29,17 +29,18 @@ namespace keepass2android.Backup
     /// <list type="bullet">
     /// <item><c>&lt;pkg&gt;.action.EXPORT_STATE</c> — run the ordinary category-ZIP export
     /// (<see cref="Kp2aBackup"/>) with no Activity and no user interaction. Extras (all String):
-    /// <c>token</c> (required), <c>path</c> (optional absolute directory, wins over the configured
-    /// folder), <c>items</c> (optional comma list of category ids; absent/empty = everything),
+    /// <c>token</c> (optional — checked only when 白い熊 has asked for one, and IGNORED rather than
+    /// refused when he has not), <c>path</c> (optional absolute directory, wins over the configured
+    /// folder), <c>items</c> (optional comma list of category ids; absent/empty = our DEFAULT set),
     /// <c>progress_action</c> (optional), plus the reply trio <c>reply_action</c> / <c>reply_package</c> /
     /// <c>reply_id</c>.</item>
-    /// <item><c>&lt;pkg&gt;.action.LIST_CATEGORIES</c> — token-gated, instant category enumeration for the
+    /// <item><c>&lt;pkg&gt;.action.LIST_CATEGORIES</c> — instant category enumeration for the
     /// caller's checkbox picker: <c>id&lt;TAB&gt;label&lt;TAB&gt;parent&lt;TAB&gt;on|off</c> per line. The
     /// third field is the parent id on sub-options (this app's <c>fonts.files</c> sits under <c>fonts</c>)
     /// and empty otherwise; the fourth says whether the item starts ticked, so the caller's picker opens on
     /// <b>our</b> answer rather than guessing.</item>
     /// <item><c>&lt;pkg&gt;.action.CANCEL_EXPORT</c> — stop the export that is running. Extras: <c>token</c>
-    /// (required) and an optional <c>reply_id</c> (absent = whatever is running, unambiguous because two at
+    /// (optional, as above) and an optional <c>reply_id</c> (absent = whatever is running, unambiguous because two at
     /// once are forbidden). It <b>sends no reply of its own</b> — fire-and-forget — and is a silent no-op
     /// when nothing is running or the export already finished, so it is safe to send at any time. The
     /// cancelled export unwinds at the next entry boundary, deletes its partial file, and answers its own
@@ -48,6 +49,12 @@ namespace keepass2android.Backup
     /// <para>
     /// <b>ONE ZIP per request</b>: the single file named by <see cref="Kp2aBackup.ExportFileName"/> is the
     /// whole backup, every selected category inside it. Nothing else is written beside it.
+    /// </para>
+    /// <para>
+    /// <b>This receiver is the UNAUTHENTICATED half of the surface, deliberately</b> (contract v2 §4): it
+    /// only ever writes where it was told to and reports what it did. Everything that moves data through a
+    /// caller-supplied descriptor — and <c>import</c>, which exists nowhere else — lives behind
+    /// <see cref="AutomationProvider"/>, which knows who is calling.
     /// </para>
     /// <para>
     /// The reply is a FRESH broadcast — never a binder. No <c>ResultReceiver</c>, no <c>PendingIntent</c>,
@@ -146,15 +153,14 @@ namespace keepass2android.Backup
         private void Handle(Context app, Intent intent, string action,
             string replyAction, string replyPackage, string replyId)
         {
-            // The switch and the token are checked separately so the two failures stay distinguishable.
-            if (!AutomationAuth.IsEnabled(app))
+            // One gate, in one place (contract v2 §2). "disabled" and "bad token" stay distinct because
+            // they debug differently — and a token sent to an app that is NOT asking for one is IGNORED,
+            // never refused: tokens outlive the setting they were pasted for, and refusing them would turn
+            // "白い熊 turned a switch off" into "half the batch mysteriously fails".
+            string refusal = AutomationAuth.Refuse(app, intent.GetStringExtra("token"));
+            if (refusal != null)
             {
-                Reply(app, replyAction, replyPackage, replyId, "ERROR:automation disabled");
-                return;
-            }
-            if (!AutomationAuth.IsTokenValid(app, intent.GetStringExtra("token")))
-            {
-                Reply(app, replyAction, replyPackage, replyId, "ERROR:bad token");
+                Reply(app, replyAction, replyPackage, replyId, refusal);
                 return;
             }
             // Our settings live in credential-encrypted storage: before the first unlock there is
@@ -197,7 +203,8 @@ namespace keepass2android.Backup
         /// </summary>
         private static void CancelExport(Context app, Intent intent)
         {
-            if (!AutomationAuth.IsTokenValid(app, intent.GetStringExtra("token")))
+            if (AutomationAuth.RequiresToken(app) &&
+                !AutomationAuth.IsTokenValid(app, intent.GetStringExtra("token")))
             {
                 Kp2aLog.Log("Backup automation: CANCEL_EXPORT with a bad token, ignored");
                 return;
@@ -353,7 +360,7 @@ namespace keepass2android.Backup
             }
         }
 
-        private static bool IsUserUnlocked(Context app)
+        internal static bool IsUserUnlocked(Context app)
         {
             try
             {

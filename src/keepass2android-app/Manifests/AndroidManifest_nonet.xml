@@ -16,8 +16,8 @@
    along with Keepass2Android.  If not, see <http://www.gnu.org/licenses/>.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-      android:versionCode="2510004"
-      android:versionName="1.15-r3+4"
+      android:versionCode="2510007"
+      android:versionName="1.15-r3+7"
       package="shiroikuma.kagiango"
       xmlns:tools="http://schemas.android.com/tools"
       android:installLocation="auto">
@@ -31,6 +31,12 @@
     <package android:name="it.andreacioni.kp2a.plugin.keelink" />
     <package android:name="com.inputstick.apps.kp2aplugin" />
     <package android:name="com.dropbox.android" />
+
+    <!-- Fork: the 保存復元 automation contract v2 (§4). WITHOUT these, setPackage() on our reply
+         broadcast fails SILENTLY on Android 11+ — the export runs, writes correctly, and is never
+         heard of. 応用管理 drives the data door (§2a); 自由作業盤 runs the 保存復元 batch. -->
+    <package android:name="shiroikuma.oyokanri" />
+    <package android:name="shiroikuma.jiyusagyoban" />
 
     <intent>
       <action android:name="android.intent.action.OPEN_DOCUMENT" />
@@ -266,6 +272,16 @@ The scheme=file is still there for old OS devices. It's also queried by apps lik
     <meta-data android:name="com.sec.android.multiwindow.DEFAULT_SIZE_H" android:value="598.0dip" />
     <meta-data android:name="com.sec.android.multiwindow.MINIMUM_SIZE_W" android:value="426.0dip" />
     <meta-data android:name="com.sec.android.multiwindow.MINIMUM_SIZE_H" android:value="360.0dip" />
+
+    <!-- Fork: capability discovery for the automation contract v2 (§2a). 応用管理 reads these across
+         every installed package at once with MATCH_UNINSTALLED_PACKAGES | MATCH_DISABLED_COMPONENTS,
+         so a FROZEN app still answers "can this be backed up" — a query intent could not, and 白い熊
+         freezes aggressively. An app without these entries is simply not offered for data backup or
+         restore; that is the opt-out. The provider and the service themselves are declared in C# by
+         [ContentProvider] / [Service] on AutomationProvider and AutomationDataService. -->
+    <meta-data android:name="shiroikuma.automation.contract"   android:value="2" />
+    <meta-data android:name="shiroikuma.automation.format"     android:value="1" />
+    <meta-data android:name="shiroikuma.automation.min_format" android:value="1" />
   </application>
   <uses-permission android:name="android.permission.VIBRATE" />
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />

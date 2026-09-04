@@ -67,6 +67,7 @@ namespace keepass2android
         // Export / Import section rows that are refreshed in place rather than by rebuilding the page.
         private TextView _backupDirSummary;
         private TextView _automationTokenSummary;
+        private View _automationTokenRow;
 
         /// <summary>The warning colour for "no backup folder set" — the same red the panel uses.</summary>
         private static readonly Color BackupWarn = new Color(unchecked((int)0xFFFF6666));
@@ -271,7 +272,9 @@ namespace keepass2android
 
         /// <summary>
         /// The first section of the page: the Export / Import panel, the backup folder, and — directly
-        /// beneath those, never as a section of its own — the 保存復元 automation switch and token.
+        /// beneath those, never as a section of its own — the 保存復元 automation rows: the master switch
+        /// (default ON), 「Use authorization token?」 (default OFF), and the token itself, which is shown
+        /// only while it is actually being asked for.
         /// </summary>
         private void AddBackupSection()
         {
@@ -285,6 +288,17 @@ namespace keepass2android
 
             AddSwitchRow(Resource.String.automation_title, Resource.String.automation_summary, 1,
                 AutomationAuth.IsEnabled(this), value => AutomationAuth.SetEnabled(this, value));
+
+            // Row 2 is what reveals row 3, and hides it again: a 48-character secret sitting under a
+            // switch that is off invites 白い熊 to paste it somewhere it will do nothing.
+            AddSwitchRow(Resource.String.automation_require_token_title,
+                Resource.String.automation_require_token_summary, 1,
+                AutomationAuth.RequiresToken(this), value =>
+                {
+                    AutomationAuth.SetRequiresToken(this, value);
+                    if (_automationTokenRow != null)
+                        _automationTokenRow.Visibility = value ? ViewStates.Visible : ViewStates.Gone;
+                });
 
             AddTokenRow(1);
         }
@@ -312,9 +326,12 @@ namespace keepass2android
 
         private void AddTokenRow(int level)
         {
-            AddDetailRow(Resource.String.automation_token_title,
+            _automationTokenRow = AddDetailRow(Resource.String.automation_token_title,
                 AutomationAuth.Abbreviate(AutomationAuth.Token(this)), level,
                 CopyAutomationToken, out _automationTokenSummary, out var action);
+            // Shown only when the row above asks for a token (contract v2 §2).
+            _automationTokenRow.Visibility =
+                AutomationAuth.RequiresToken(this) ? ViewStates.Visible : ViewStates.Gone;
 
             action.Visibility = ViewStates.Visible;
             action.Text = GetString(Resource.String.automation_token_regenerate);
