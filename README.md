@@ -6,11 +6,11 @@
 
 **A KeePass 2.x password manager for Android, restyled head-to-toe in signature black-yellow.**
 
-A fork of [keepass2android](https://github.com/PhilippC/keepass2android) with **major additions**: a per-element theming page (colors and fonts for every surface), a one-ZIP export/import of every setting, an app-drawn black-yellow fingerprint dialog, a chronologically merged fork+upstream change log, and the offline-only NoNet build.
+A fork of [keepass2android](https://github.com/PhilippC/keepass2android) with **major additions**: a per-element theming page (colors and fonts for every surface), a one-ZIP export/import of every setting, a sister-app backup door that checks who is knocking, an app-drawn black-yellow fingerprint dialog, a chronologically merged fork+upstream change log, and the offline-only NoNet build.
 
 Installs **side-by-side** with Keepass2Android (app id `shiroikuma.kagiango`).
 
-**📥 Latest release: [`1.15-r3+3`](https://github.com/ShiroiKuma0/shiroikuma-kagiango/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-kagiango/releases)
+**📥 Latest release: [`1.15-r3+6`](https://github.com/ShiroiKuma0/shiroikuma-kagiango/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-kagiango/releases)
 
 </div>
 
@@ -29,7 +29,16 @@ Because this is a password manager, the export is an **allow-list**: only keys a
 
 An archive is built under a `.part` name and renamed only once it is whole, so a run that fails — or is stopped — leaves the backup folder exactly as it found it: no short archive, no stray partial.
 
-A token-gated intent lets a sister app run the same export **headlessly** — off by default, with the token shown (and copyable) right below the export rows. The app states which categories start ticked, so the caller's picker opens on our answer rather than a guess, and a running export can be **cancelled from outside**: it unwinds at the next category boundary and takes its partial file with it.
+A sister app can run the same export **headlessly**. That switch now ships **on** — a phone that has just been wiped has nobody left to configure it — while 「Use authorization token?」 stays off by default and reveals the token only if you actually ask for one; a token sent to an app that isn't asking is ignored rather than refused, so turning one switch off never breaks somebody else's batch. The app states which categories start ticked, so the caller's picker opens on our answer rather than a guess, and a running export can be **cancelled from outside**: it unwinds at the next category boundary and takes its partial file with it.
+
+---
+
+## 🚪 A data door that checks who is knocking
+[白い熊 応用管理](https://github.com/ShiroiKuma0) can back this app up **with its settings** and put them back on a wiped phone. That goes through an exported `ContentProvider`, not a broadcast, for a blunt reason: **a broadcast cannot tell you who sent it**, and the caller is the one supplying the destination.
+
+A caller is admitted on three counts, each because the one before it isn't enough: an **exact package name** — never a prefix, because a package name is not a namespace anyone owns and any sideloaded app can call itself `shiroikuma.evil`; the **uid the kernel reports**, which cannot be borrowed the way a declared name can; and a **pinned signing certificate**, because whichever caller isn't installed yet is a name anyone can take — and a freshly wiped phone is exactly where that is true. The backup itself travels through a file descriptor the caller opens, so nothing is ever written to a path we chose. **Restore lives only behind that check** — never on the unauthenticated broadcast, because an import rewrites a password manager's security settings.
+
+And the door is honest about what it hands over: its own self-description ends with *"Settings only — never the database, the master password or a stored login"*. A green backup row can never be mistaken for a backup of your `.kdbx`.
 
 ---
 
