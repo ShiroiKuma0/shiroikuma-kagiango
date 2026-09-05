@@ -1,7 +1,7 @@
 # 白い熊 鍵暗号 — changes on top of keepass2android
 
 Fork of [keepass2android](https://github.com/PhilippC/keepass2android) `1.15-r3`, branch `custom`.
-Everything below is on top of stock. Current release: **1.15-r3+007** (2026-09-05).
+Everything below is on top of stock. Current release: **1.15-r3+008** (2026-09-05).
 
 Rebased onto upstream `1.15-r3` (versionCode 251), which brings the #3066 fix — background sync no
 longer loses the keyfile — plus Crowdin translation updates. The fork build counter restarts at `+1`
@@ -14,7 +14,7 @@ on each new upstream line; versionCode `<UPSTREAM_CODE>*10000+N` keeps upgrades 
 - **NoNet (offline) flavor only** — no cloud-storage SDKs, no QR scanner.
 - Fork versioning `<UPSTREAM>+<NNN>` (versionCode `<UPSTREAM_CODE>*10000+N`) with the manifest as single source of truth; `build-scripts/fork-build.sh` builds the signed release, copies it to `~/tmp`, and auto-bumps `N`.
 - **The build counter is zero-padded to three digits** in `versionName` (`+007`, `+014`) so `~/tmp`, the phone's `/sdcard/tmp` and the release list all sort in build order — the sister-app family convention, adopted here from `1.15-r3+007`. `versionCode` keeps the plain number, and releases published before it (`1.15-r3+6` and earlier) are never retagged. The bump reads the counter as base 10 explicitly, because a padded `008` would otherwise be parsed as octal and abort the build.
-- **One universal APK**, not per-ABI splits: `make apk` packs `arm64-v8a`, `armeabi-v7a`, `x86` and `x86_64` into a single artefact, so the filename carries no ABI suffix — unlike the Gradle sister forks, there is no split for one to name. `make apk_split` remains available if per-ABI builds are ever wanted.
+- **arm64-v8a only**, from `1.15-r3+008`: the artefact is `shiroikuma-kagiango_<version>_arm64-v8a.apk`, matching the sister-app naming convention. `fork-build.sh` runs a fork `make apk_arm64` target — upstream's `apk_split` arm64 line without the other three RIDs, and without that target's rename step, which still points at a `net8.0` directory this fork does not produce. The universal APK it replaces spent three quarters of its 54 MB on `armeabi-v7a`, `x86` and `x86_64` payload the target phone cannot run; the arm64 build is ~23 MB. The build then inspects `lib/` in the finished APK and **aborts unless it holds `arm64-v8a` and nothing else**, because a silent fallback to the universal build would install perfectly well and go unnoticed. `make apk` and `make apk_split` both remain if a non-arm64 target is ever needed.
 - Release signing via gitignored `keystore.properties` → `~/.android-keystores/shiroikuma-kagiango.jks`.
 - Build hardening: packaging outputs are purged before every build and the built APK's embedded `versionCode` is verified against the manifest — a stale MSBuild package aborts the build instead of shipping.
 - New-issue form fixed and repository de-branded to this fork.

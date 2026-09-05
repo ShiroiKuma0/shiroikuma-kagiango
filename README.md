@@ -8,9 +8,9 @@
 
 A fork of [keepass2android](https://github.com/PhilippC/keepass2android) with **major additions**: a per-element theming page (colors and fonts for every surface), a one-ZIP export/import of every setting, a sister-app backup door that checks who is knocking, an app-drawn black-yellow fingerprint dialog, a chronologically merged fork+upstream change log, and the offline-only NoNet build.
 
-Installs **side-by-side** with Keepass2Android (app id `shiroikuma.kagiango`).
+Installs **side-by-side** with Keepass2Android (app id `shiroikuma.kagiango`). Built for **arm64-v8a**.
 
-**📥 Latest release: [`1.15-r3+007`](https://github.com/ShiroiKuma0/shiroikuma-kagiango/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-kagiango/releases)
+**📥 Latest release: [`1.15-r3+008`](https://github.com/ShiroiKuma0/shiroikuma-kagiango/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-kagiango/releases)
 
 </div>
 
@@ -62,5 +62,6 @@ git clone --recurse-submodules git@github.com:ShiroiKuma0/shiroikuma-kagiango
 cd shiroikuma-kagiango            # branch: custom
 # prerequisites: dotnet 9 + android workload, nuget, JDK 21, Android SDK + NDK r26d
 # (ANDROID_SDK_ROOT / ANDROID_HOME / ANDROID_NDK_ROOT exported; see CLAUDE.md → Building)
-./build-scripts/fork-build.sh     # signed NoNet release APK → ~/tmp/shiroikuma-kagiango_<version>.apk
+./build-scripts/fork-build.sh     # signed NoNet release APK (arm64-v8a)
+                                  # → ~/tmp/shiroikuma-kagiango_<version>_arm64-v8a.apk
 ```
