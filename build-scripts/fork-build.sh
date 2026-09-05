@@ -5,8 +5,8 @@
 # Fossify siblings' `./gradlew buildFoss` task.
 #
 # Single source of truth for the fork version is AndroidManifest_nonet.xml:
-#   android:versionName="<UPSTREAM>+<N>"   e.g. 1.15-r2+1
-#   android:versionCode="<UPSTREAM_CODE * 10000 + N>"   e.g. 250*10000+1 = 2500001
+#   android:versionName="<UPSTREAM>+<NNN>"   e.g. 1.15-r3+007   (N zero-padded to three digits)
+#   android:versionCode="<UPSTREAM_CODE * 10000 + N>"   e.g. 251*10000+7 = 2510007  (N unpadded)
 # The script builds the CURRENT value, then bumps N by 1 for the next build (like buildFoss).
 #
 # Prerequisites (the Makefile also enforces the env vars):
@@ -39,8 +39,12 @@ if [[ -z "$vcode" || -z "$vname" ]]; then
   echo "ERROR: could not read versionCode/versionName from $MANIFEST" >&2
   exit 1
 fi
-base_name="${vname%+*}"     # 1.15-r2+1 -> 1.15-r2
-build_n="${vname##*+}"      # 1.15-r2+1 -> 1
+base_name="${vname%+*}"     # 1.15-r3+007 -> 1.15-r3
+build_n="${vname##*+}"      # 1.15-r3+007 -> 007
+# 10# forces base 10. Bash reads a leading-zero literal as OCTAL, so without this the padded
+# counter would abort the build with "value too great for base" on +008 and +009 — a failure that
+# waits two builds after the padding lands and then looks like it came from nowhere.
+build_n=$(( 10#$build_n ))
 base_code=$(( vcode / 10000 ))
 
 echo ">>> building ${APK_PREFIX}_${vname}  (versionCode ${vcode}, flavor ${FLAVOR})"
@@ -94,7 +98,9 @@ echo ">>> versionCode ${vcode}"
 # --- bump the build number for next time (only reached on a successful build) ---------------------
 next_n=$(( build_n + 1 ))
 next_code=$(( base_code * 10000 + next_n ))
-next_name="${base_name}+${next_n}"
+# Zero-padded to three digits (global after-build rule) so ~/tmp listings, the phone's
+# /sdcard/tmp and the release list all sort in build order. versionCode keeps the plain number.
+next_name="${base_name}+$(printf '%03d' "${next_n}")"
 sed -i -E "s/(android:versionCode=\")[0-9]+(\")/\1${next_code}\2/" "$MANIFEST"
 sed -i -E "s/(android:versionName=\")[^\"]+(\")/\1${next_name}\2/" "$MANIFEST"
 echo ">>> next build will be ${next_name} (versionCode ${next_code})"

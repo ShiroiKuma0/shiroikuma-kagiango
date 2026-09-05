@@ -59,11 +59,18 @@ id to `shiroikuma.kagiango` required two coupled edits beyond the manifest `pack
 
 The fork version lives **directly in `AndroidManifest_nonet.xml`** (there is no `gradle.properties`):
 
-- `versionName` = `"<UPSTREAM>+<N>"` (currently `1.15-r2+1`). `versionCode` =
-  `<UPSTREAM_CODE> * 10000 + N` (currently `250*10000+1 = 2500001`).
+- `versionName` = `"<UPSTREAM>+<NNN>"` (currently `1.15-r3+007`). `versionCode` =
+  `<UPSTREAM_CODE> * 10000 + N` (currently `251*10000+7 = 2510007`).
 - `N` is **our** build increment: starts at `1`, bumps `+1` on every build, **resets to `1`** on each new
-  upstream version.
-- Output APK = `~/tmp/shiroikuma-kagiango_<versionName>.apk` (e.g. `shiroikuma-kagiango_1.15-r2+1.apk`).
+  upstream version. **It is zero-padded to three digits in `versionName`** (`+001`, `+014`) — the global
+  after-build rule — so `~/tmp`, `/sdcard/tmp` and the release list all sort in build order.
+  `versionCode` carries the plain unpadded number.
+- Output APK = `~/tmp/shiroikuma-kagiango_<versionName>.apk` (e.g. `shiroikuma-kagiango_1.15-r3+007.apk`).
+- **Releases published before 2026-09-04 are unpadded** (`1.15-r3+6` and earlier). They are never
+  retagged or renamed; the padding simply starts from the current build.
+- **One universal APK, no ABI suffix.** `make apk` packs all four ABIs into a single artefact, so unlike
+  the Gradle sister forks there is no `_arm64-v8a` to append — the name would claim a split that does not
+  exist. `make apk_split` is what would produce per-ABI APKs if that is ever wanted.
 
 ### Building the fork
 
