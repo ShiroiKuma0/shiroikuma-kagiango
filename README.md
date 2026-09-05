@@ -10,7 +10,7 @@ A fork of [keepass2android](https://github.com/PhilippC/keepass2android) with **
 
 Installs **side-by-side** with Keepass2Android (app id `shiroikuma.kagiango`).
 
-**📥 Latest release: [`1.15-r3+6`](https://github.com/ShiroiKuma0/shiroikuma-kagiango/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-kagiango/releases)
+**📥 Latest release: [`1.15-r3+007`](https://github.com/ShiroiKuma0/shiroikuma-kagiango/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-kagiango/releases)
 
 </div>
 

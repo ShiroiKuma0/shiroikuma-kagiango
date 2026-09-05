@@ -1,7 +1,7 @@
 # 白い熊 鍵暗号 — changes on top of keepass2android
 
 Fork of [keepass2android](https://github.com/PhilippC/keepass2android) `1.15-r3`, branch `custom`.
-Everything below is on top of stock. Current release: **1.15-r3+6** (2026-09-04).
+Everything below is on top of stock. Current release: **1.15-r3+007** (2026-09-05).
 
 Rebased onto upstream `1.15-r3` (versionCode 251), which brings the #3066 fix — background sync no
 longer loses the keyfile — plus Crowdin translation updates. The fork build counter restarts at `+1`
@@ -12,7 +12,9 @@ on each new upstream line; versionCode `<UPSTREAM_CODE>*10000+N` keeps upgrades 
 - `AppNames.PackagePart` → `kagiango`, making the C#-derived content providers, custom permissions, and internal intent actions unique vs upstream (`keepass2android.kagiango.*`, `kp2a.kagiango.*`); manifest permission/authority literals and `searchable_offline.xml` updated to match.
 - Keyboard bridge fix: `Intents.LockDatabase` / `Intents.KeyboardCleared` use the `shiroikuma.kagiango` prefix so the bundled KP2A keyboard's lock-key and clear-on-lock keep working under the new app id; file-chooser provider authorities likewise.
 - **NoNet (offline) flavor only** — no cloud-storage SDKs, no QR scanner.
-- Fork versioning `<UPSTREAM>+<N>` (versionCode `<UPSTREAM_CODE>*10000+N`) with the manifest as single source of truth; `build-scripts/fork-build.sh` builds the signed release, copies it to `~/tmp`, and auto-bumps `N`.
+- Fork versioning `<UPSTREAM>+<NNN>` (versionCode `<UPSTREAM_CODE>*10000+N`) with the manifest as single source of truth; `build-scripts/fork-build.sh` builds the signed release, copies it to `~/tmp`, and auto-bumps `N`.
+- **The build counter is zero-padded to three digits** in `versionName` (`+007`, `+014`) so `~/tmp`, the phone's `/sdcard/tmp` and the release list all sort in build order — the sister-app family convention, adopted here from `1.15-r3+007`. `versionCode` keeps the plain number, and releases published before it (`1.15-r3+6` and earlier) are never retagged. The bump reads the counter as base 10 explicitly, because a padded `008` would otherwise be parsed as octal and abort the build.
+- **One universal APK**, not per-ABI splits: `make apk` packs `arm64-v8a`, `armeabi-v7a`, `x86` and `x86_64` into a single artefact, so the filename carries no ABI suffix — unlike the Gradle sister forks, there is no split for one to name. `make apk_split` remains available if per-ABI builds are ever wanted.
 - Release signing via gitignored `keystore.properties` → `~/.android-keystores/shiroikuma-kagiango.jks`.
 - Build hardening: packaging outputs are purged before every build and the built APK's embedded `versionCode` is verified against the manifest — a stale MSBuild package aborts the build instead of shipping.
 - New-issue form fixed and repository de-branded to this fork.
