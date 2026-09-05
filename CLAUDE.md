@@ -65,12 +65,20 @@ The fork version lives **directly in `AndroidManifest_nonet.xml`** (there is no 
   upstream version. **It is zero-padded to three digits in `versionName`** (`+001`, `+014`) — the global
   after-build rule — so `~/tmp`, `/sdcard/tmp` and the release list all sort in build order.
   `versionCode` carries the plain unpadded number.
-- Output APK = `~/tmp/shiroikuma-kagiango_<versionName>.apk` (e.g. `shiroikuma-kagiango_1.15-r3+007.apk`).
+- Output APK = `~/tmp/shiroikuma-kagiango_<versionName>_arm64-v8a.apk`
+  (e.g. `shiroikuma-kagiango_1.15-r3+008_arm64-v8a.apk`).
 - **Releases published before 2026-09-04 are unpadded** (`1.15-r3+6` and earlier). They are never
   retagged or renamed; the padding simply starts from the current build.
-- **One universal APK, no ABI suffix.** `make apk` packs all four ABIs into a single artefact, so unlike
-  the Gradle sister forks there is no `_arm64-v8a` to append — the name would claim a split that does not
-  exist. `make apk_split` is what would produce per-ABI APKs if that is ever wanted.
+- **arm64-v8a only, so the name carries the ABI** — the sister-app convention (白い熊, 2026-09-05).
+  `fork-build.sh` runs `make apk_arm64`, a fork target that is upstream's `apk_split` arm64 line without
+  the other three RIDs (and without that target's rename step, which still points at a `net8.0` output
+  directory this fork does not produce). The universal build spent three quarters of its 54 MB on ABIs
+  the target phone cannot run; the arm64 APK is ~23 MB.
+- **The build refuses to ship the wrong thing:** `fork-build.sh` inspects `lib/` in the finished APK and
+  aborts unless it contains `arm64-v8a` and nothing else. A silent fallback to the universal build would
+  still install and nothing downstream would notice.
+- **Consequence: the APK will not install on a non-arm64 device.** Every current target is arm64; if that
+  ever changes, `make apk` (universal) and `make apk_split` (all four) are both still there.
 
 ### Building the fork
 
@@ -137,7 +145,8 @@ make native                 # build argon2 .so files via ndk-build
 make java                   # build the Gradle modules into .aar/.apk
 make nuget Flavor=Net       # restore NuGet packages for the chosen flavor
 make dotnetbuild Flavor=Net Configuration=Release   # build the app (no signed APK)
-make apk Flavor=Net Configuration=Release           # build + sign the APK (implies the above)
+make apk Flavor=Net Configuration=Release           # build + sign a universal APK (implies the above)
+make apk_arm64 Flavor=NoNet Configuration=Release   # fork target: arm64-v8a only — what we ship
 make apk_split ...          # per-ABI APKs (android-arm, arm64, x86, x64)
 ```
 

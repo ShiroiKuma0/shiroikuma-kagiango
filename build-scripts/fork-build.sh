@@ -7,6 +7,8 @@
 # Single source of truth for the fork version is AndroidManifest_nonet.xml:
 #   android:versionName="<UPSTREAM>+<NNN>"   e.g. 1.15-r3+007   (N zero-padded to three digits)
 #   android:versionCode="<UPSTREAM_CODE * 10000 + N>"   e.g. 251*10000+7 = 2510007  (N unpadded)
+# The build is arm64-v8a ONLY (make apk_arm64), so the artefact is named
+#   shiroikuma-kagiango_<versionName>_arm64-v8a.apk — the sister-app convention.
 # The script builds the CURRENT value, then bumps N by 1 for the next build (like buildFoss).
 #
 # Prerequisites (the Makefile also enforces the env vars):
@@ -28,7 +30,10 @@ fi
 
 MANIFEST="src/keepass2android-app/Manifests/AndroidManifest_nonet.xml"
 FLAVOR="NoNet"
-PUBLISH_DIR="src/keepass2android-app/bin/Release/net9.0-android/publish"
+# Single-ABI build: arm64-v8a only. A RID-specific publish lands under its own <rid>/publish dir.
+RID="android-arm64"
+ABI="arm64-v8a"
+PUBLISH_DIR="src/keepass2android-app/bin/Release/net9.0-android/${RID}/publish"
 APK_PREFIX="shiroikuma-kagiango"
 TMP_DIR="${HOME}/tmp"
 
@@ -47,7 +52,7 @@ build_n="${vname##*+}"      # 1.15-r3+007 -> 007
 build_n=$(( 10#$build_n ))
 base_code=$(( vcode / 10000 ))
 
-echo ">>> building ${APK_PREFIX}_${vname}  (versionCode ${vcode}, flavor ${FLAVOR})"
+echo ">>> building ${APK_PREFIX}_${vname}_${ABI}  (versionCode ${vcode}, flavor ${FLAVOR}, ${RID})"
 
 # --- signing (release) ----------------------------------------------------------------------------
 MAKE_SIGN_ARGS=()
@@ -66,15 +71,26 @@ fi
 # `dotnet publish` ran — purge the packaging outputs so the APK is always regenerated.
 rm -rf "${PUBLISH_DIR}"
 rm -f src/keepass2android-app/bin/Release/net9.0-android/*.apk
+rm -f "src/keepass2android-app/bin/Release/net9.0-android/${RID}"/*.apk
 rm -f src/keepass2android-app/obj/Release/net9.0-android/android/bin/*.apk
+rm -f "src/keepass2android-app/obj/Release/net9.0-android/${RID}"/android/bin/*.apk
 
-make apk Flavor="${FLAVOR}" Configuration=Release "${MAKE_SIGN_ARGS[@]}"
+make apk_arm64 Flavor="${FLAVOR}" Configuration=Release "${MAKE_SIGN_ARGS[@]}"
 
 # --- locate the signed APK ------------------------------------------------------------------------
 apk="$(ls -t "${PUBLISH_DIR}"/*-Signed.apk 2>/dev/null | head -1 || true)"
 [[ -z "$apk" ]] && apk="$(ls -t "${PUBLISH_DIR}"/*.apk 2>/dev/null | head -1 || true)"
 if [[ -z "$apk" ]]; then
   echo "ERROR: no APK found in ${PUBLISH_DIR}. Inspect the build output above." >&2
+  exit 1
+fi
+
+# --- verify the APK carries ONE ABI, and the right one -------------------------------------------
+# A single-ABI build that silently fell back to the universal one would be three times the size and
+# would still install, so nothing downstream would notice. Check rather than assume.
+abis="$(unzip -l "$apk" | grep -oE 'lib/[^/]+/' | sort -u | cut -d/ -f2 | tr '\n' ' ' | sed 's/ $//')"
+if [[ "$abis" != "$ABI" ]]; then
+  echo "ERROR: expected only ${ABI} in the APK, found: ${abis:-none}. Not copying." >&2
   exit 1
 fi
 
@@ -90,7 +106,7 @@ fi
 
 # --- copy to ~/tmp with the fork filename ---------------------------------------------------------
 mkdir -p "${TMP_DIR}"
-out="${TMP_DIR}/${APK_PREFIX}_${vname}.apk"
+out="${TMP_DIR}/${APK_PREFIX}_${vname}_${ABI}.apk"
 cp "$apk" "$out"
 echo ">>> ${out}"
 echo ">>> versionCode ${vcode}"

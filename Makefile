@@ -306,6 +306,13 @@ apk_split: manifestlink native java nuget
 	$(DOTNET) publish src/keepass2android-app/keepass2android-app.csproj -p:AndroidSdkDirectory="$(ANDROID_SDK_ROOT)" -t:SignAndroidPackage $(DOTNET_PARAM) -p:Platform=AnyCPU -m -p:RuntimeIdentifier=android-x64
 	src/build-scripts/rename-output-apks.sh src/keepass2android-app/bin/Release/net8.0-android/
 
+# Fork: single-ABI build. 白い熊 鍵暗号 ships arm64-v8a only — the universal APK spent three
+# quarters of its 54 MB on ABIs the target phone cannot run. This is exactly the arm64 line of
+# apk_split above, without the other three RIDs and without that target's rename step, which
+# still points at a net8.0 output directory this fork does not produce.
+apk_arm64: manifestlink native java nuget
+	$(DOTNET) publish src/keepass2android-app/keepass2android-app.csproj -p:AndroidSdkDirectory="$(ANDROID_SDK_ROOT)" -t:SignAndroidPackage $(DOTNET_PARAM) -p:Platform=AnyCPU -m -p:RuntimeIdentifier=android-arm64
+
 build_all: dotnetbuild
 
 ##### Cleanup targets

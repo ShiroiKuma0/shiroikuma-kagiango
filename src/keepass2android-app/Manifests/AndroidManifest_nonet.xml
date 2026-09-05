@@ -16,8 +16,8 @@
    along with Keepass2Android.  If not, see <http://www.gnu.org/licenses/>.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-      android:versionCode="2510008"
-      android:versionName="1.15-r3+008"
+      android:versionCode="2510009"
+      android:versionName="1.15-r3+009"
       package="shiroikuma.kagiango"
       xmlns:tools="http://schemas.android.com/tools"
       android:installLocation="auto">
