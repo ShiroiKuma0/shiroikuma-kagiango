@@ -99,6 +99,8 @@ namespace keepass2android.Utils
                  * show this dialog, it will raise error
                  */
                 mDialog.Show();
+                // Fork (白い熊 鍵暗号 UI): black surface, accent border, themed message and spinner.
+                keepass2android.Theming.Kp2aTheme.ApplyAlertDialog(mDialog);
               }
               catch (Exception t)
               {

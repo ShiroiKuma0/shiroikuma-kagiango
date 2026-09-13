@@ -79,7 +79,8 @@ namespace keepass2android.Theming
 
         private static void ApplyTypefaceRecursive(View v, Android.Graphics.Typeface tf)
         {
-            if (v is TextView tv)
+            // the (i) help glyph is drawn with an icon font; a text font would turn it into a box
+            if (v is TextView tv && !(v is keepass2android.views.Kp2aShortHelpView))
             {
                 TypefaceStyle style = tv.Typeface?.Style ?? TypefaceStyle.Normal;
                 tv.SetTypeface(tf, style);
@@ -114,26 +115,36 @@ namespace keepass2android.Theming
         /// <summary>Apply a slot's font (family/weight/size), falling back to the global app font.</summary>
         public static void ApplyFont(TextView tv, string slotKey, Context ctx)
         {
+            Android.Graphics.Typeface tf = SlotTypeface(ctx, slotKey);
+            if (tf != null)
+            {
+                TypefaceStyle style = tv.Typeface?.Style ?? TypefaceStyle.Normal;
+                tv.SetTypeface(tf, style);
+            }
+            int sizeSp = ThemeConfig.GetFontSizeSp(ctx, slotKey);
+            if (sizeSp > 0)
+                tv.SetTextSize(Android.Util.ComplexUnitType.Sp, sizeSp);
+        }
+
+        /// <summary>
+        /// A slot's typeface (family/weight), inheriting the global app font when the slot has none of
+        /// its own; null when neither is set. For text that is not a TextView (a collapsing title).
+        /// </summary>
+        public static Android.Graphics.Typeface SlotTypeface(Context ctx, string slotKey)
+        {
             string family = ThemeConfig.GetFontFamily(ctx, slotKey);
             int weight = ThemeConfig.GetFontWeight(ctx, slotKey);
-            int sizeSp = ThemeConfig.GetFontSizeSp(ctx, slotKey);
 
             if (string.IsNullOrEmpty(family))
             {
-                // inherit the global app font when this slot has none of its own
                 family = ThemeConfig.GetFontFamily(ctx, ThemeColors.AppFontKey);
                 if (weight == 0)
                     weight = ThemeConfig.GetFontWeight(ctx, ThemeColors.AppFontKey);
             }
 
-            if (!string.IsNullOrEmpty(family) || weight > 0)
-            {
-                Android.Graphics.Typeface tf = FontManager.FontTypeface(ctx, family, weight);
-                TypefaceStyle style = tv.Typeface?.Style ?? TypefaceStyle.Normal;
-                tv.SetTypeface(tf, style);
-            }
-            if (sizeSp > 0)
-                tv.SetTextSize(Android.Util.ComplexUnitType.Sp, sizeSp);
+            if (string.IsNullOrEmpty(family) && weight <= 0)
+                return null;
+            return FontManager.FontTypeface(ctx, family, weight);
         }
 
         public static void ApplyBackground(View v, ThemeSlot slot)
@@ -234,6 +245,248 @@ namespace keepass2android.Theming
             }
         }
 
+        // ---- unlock screens (the collapsing banner above the password field) ----------------------
+
+        /// <summary>
+        /// Paints an unlock screen's collapsing banner in the unlock background: the blue artwork
+        /// backdrop becomes a solid colour, the app bar and the scrims shown when the bar folds follow
+        /// it, and the banner title takes the toolbar-title colour and font, expanded and collapsed.
+        /// </summary>
+        public static void ApplyUnlockBanner(Activity activity)
+        {
+            try
+            {
+                Context ctx = activity;
+                bool hasBg = TryColor(ctx, ThemeSlot.UnlockBackground, out var bg);
+                if (hasBg)
+                {
+                    activity.FindViewById<ImageView>(Resource.Id.backdrop)?.SetImageDrawable(new ColorDrawable(bg));
+                    activity.FindViewById<View>(Resource.Id.appbar)?.SetBackgroundColor(bg);
+                    // The status bar sits over the banner: the window colour (the theme leaves it at the
+                    // Material primary) and the drawer's own status-bar strip both follow the banner.
+                    activity.Window?.SetStatusBarColor(bg);
+                    activity.FindViewById<AndroidX.DrawerLayout.Widget.DrawerLayout>(Resource.Id.drawer_layout)?.SetStatusBarBackgroundColor(bg);
+                }
+
+                var collapsing = activity.FindViewById<Google.Android.Material.AppBar.CollapsingToolbarLayout>(Resource.Id.collapsing_toolbar);
+                if (collapsing == null)
+                    return;
+                if (hasBg)
+                {
+                    collapsing.SetContentScrimColor(bg);
+                    collapsing.SetStatusBarScrimColor(bg);
+                }
+                if (TryColor(ctx, ThemeSlot.ToolbarTitle, out var title))
+                {
+                    collapsing.SetCollapsedTitleTextColor(title);
+                    collapsing.SetExpandedTitleColor(title);
+                }
+                Android.Graphics.Typeface tf = SlotTypeface(ctx, ThemeColors.KeyOf(ThemeSlot.ToolbarTitle));
+                if (tf != null)
+                {
+                    collapsing.CollapsedTitleTypeface = tf;
+                    collapsing.ExpandedTitleTypeface = tf;
+                }
+            }
+            catch (Exception e)
+            {
+                Kp2aLog.Log("Theme: ApplyUnlockBanner failed: " + e);
+            }
+        }
+
+        /// <summary>
+        /// A button on an unlock screen: a filled button takes the unlock background as fill and an
+        /// accent border; every button takes the unlock button-text colour and font, and any
+        /// compound (drawableLeft) icon is tinted accent. Text buttons keep their transparent fill.
+        /// </summary>
+        public static void ApplyUnlockButton(Button button)
+        {
+            if (button == null)
+                return;
+            try
+            {
+                Context ctx = button.Context;
+                bool hasAccent = TryColor(ctx, ThemeSlot.Accent, out var accent);
+                bool filled = button is Google.Android.Material.Button.MaterialButton
+                    && (((button.BackgroundTintList?.DefaultColor ?? 0) >> 24) & 0xFF) != 0;
+                if (filled)
+                {
+                    if (TryColor(ctx, ThemeSlot.UnlockBackground, out var bg))
+                        button.BackgroundTintList = Csl(bg);
+                    if (hasAccent && button is Google.Android.Material.Button.MaterialButton mb)
+                    {
+                        mb.StrokeColor = Csl(accent);
+                        mb.StrokeWidth = Dp(ctx, 2);
+                    }
+                }
+                if (hasAccent)
+                    AndroidX.Core.Widget.TextViewCompat.SetCompoundDrawableTintList(button, Csl(accent));
+                ApplyColorAndFont(button, ThemeSlot.UnlockButtonText, ctx);
+            }
+            catch (Exception e)
+            {
+                Kp2aLog.Log("Theme: ApplyUnlockButton failed: " + e);
+            }
+        }
+
+        /// <summary>
+        /// Walks an unlock-screen form and puts every element into the unlock slots: labels and
+        /// checkbox captions (label), fields with hint/underline/cursor (password text + accent),
+        /// buttons, checkbox boxes and icons (accent), spinners (themed rows and popup), and the
+        /// 1–2 dp hairline rules (accent). Solid-fill images (the banner) are left alone.
+        /// </summary>
+        public static void ApplyUnlockForm(View root)
+        {
+            if (root == null)
+                return;
+            try
+            {
+                WalkUnlockForm(root, root.Context);
+            }
+            catch (Exception e)
+            {
+                Kp2aLog.Log("Theme: ApplyUnlockForm failed: " + e);
+            }
+        }
+
+        private static void WalkUnlockForm(View v, Context ctx)
+        {
+            bool hasAccent = TryColor(ctx, ThemeSlot.Accent, out var accent);
+            switch (v)
+            {
+                case Spinner spinner:
+                    ApplySpinner(spinner);
+                    break;
+                case EditText field:
+                    ApplyColorAndFont(field, ThemeSlot.UnlockPasswordText, ctx);
+                    if (TryColor(ctx, ThemeSlot.UnlockPasswordText, out var text))
+                        field.SetHintTextColor(new Color(text.R, text.G, text.B, (byte)0x99));
+                    if (hasAccent)
+                    {
+                        field.BackgroundTintList = Csl(accent);
+                        if (Build.VERSION.SdkInt >= BuildVersionCodes.Q)
+                            field.TextCursorDrawable?.SetTint(accent.ToArgb());
+                    }
+                    break;
+                case CompoundButton toggle:
+                    ApplyColorAndFont(toggle, ThemeSlot.UnlockLabel, ctx);
+                    if (hasAccent)
+                        toggle.ButtonTintList = Csl(accent);
+                    break;
+                case Button button:
+                    ApplyUnlockButton(button);
+                    break;
+                case keepass2android.views.Kp2aShortHelpView help:
+                    // colour only: its glyph comes from an icon font
+                    if (TryColor(ctx, ThemeSlot.UnlockLabel, out var helpColor))
+                        help.SetTextColor(helpColor);
+                    break;
+                case TextView label:
+                    ApplyColorAndFont(label, ThemeSlot.UnlockLabel, ctx);
+                    break;
+                case ImageButton fp when fp.Id == Resource.Id.fingerprintbtn:
+                    SetFingerprintIcon(fp, Resource.Drawable.baseline_fingerprint_24);
+                    break;
+                case ImageView image:
+                    if (hasAccent && image.Drawable != null && !(image.Drawable is ColorDrawable))
+                        image.SetColorFilter(accent);
+                    break;
+                case ViewGroup group:
+                    for (int i = 0; i < group.ChildCount; i++)
+                        WalkUnlockForm(group.GetChildAt(i), ctx);
+                    break;
+                default:
+                    int h = v.LayoutParameters?.Height ?? 0;
+                    if (hasAccent && v.Background is ColorDrawable && h > 0 && h <= Dp(ctx, 2))
+                        v.SetBackgroundColor(accent);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// The resting fingerprint icon takes the accent; the error/success icons keep their own
+        /// red/green so the state still reads.
+        /// </summary>
+        public static void SetFingerprintIcon(ImageButton btn, int resId)
+        {
+            if (btn == null)
+                return;
+            try
+            {
+                btn.SetImageResource(resId);
+                btn.ImageTintList = resId == Resource.Drawable.baseline_fingerprint_24 && TryColor(btn.Context, ThemeSlot.Accent, out var accent)
+                    ? Csl(accent)
+                    : null;
+            }
+            catch (Exception e)
+            {
+                Kp2aLog.Log("Theme: SetFingerprintIcon failed: " + e);
+            }
+        }
+
+        // ---- spinners -----------------------------------------------------------------------------
+
+        /// <summary>
+        /// Themes a spinner: the arrow takes the accent, the popup a black surface with an accent
+        /// border, and the adapter is wrapped so the selected row and the dropdown rows render in
+        /// the password-text colour/font. Wrapping resets the selection, so call this before the
+        /// caller selects an item or attaches ItemSelected; a second call only refreshes the chrome.
+        /// </summary>
+        public static void ApplySpinner(Spinner spinner)
+        {
+            if (spinner == null)
+                return;
+            try
+            {
+                Context ctx = spinner.Context;
+                bool hasAccent = TryColor(ctx, ThemeSlot.Accent, out var accent);
+                if (hasAccent)
+                    spinner.BackgroundTintList = Csl(accent);
+                if (TryColor(ctx, ThemeSlot.UnlockBackground, out var bg))
+                {
+                    var popup = new GradientDrawable();
+                    popup.SetColor(bg);
+                    popup.SetCornerRadius(Dp(ctx, 8));
+                    if (hasAccent)
+                        popup.SetStroke(Dp(ctx, 2), accent);
+                    spinner.SetPopupBackgroundDrawable(popup);
+                }
+                if (spinner.Adapter != null && !(spinner.Adapter is ThemedSpinnerAdapter))
+                    spinner.Adapter = new ThemedSpinnerAdapter(spinner.Adapter);
+            }
+            catch (Exception e)
+            {
+                Kp2aLog.Log("Theme: ApplySpinner failed: " + e);
+            }
+        }
+
+        private sealed class ThemedSpinnerAdapter : BaseAdapter
+        {
+            private readonly ISpinnerAdapter _inner;
+
+            public ThemedSpinnerAdapter(ISpinnerAdapter inner)
+            {
+                _inner = inner;
+            }
+
+            public override int Count => _inner.Count;
+            public override Java.Lang.Object GetItem(int position) => _inner.GetItem(position);
+            public override long GetItemId(int position) => _inner.GetItemId(position);
+
+            public override View GetView(int position, View convertView, ViewGroup parent) =>
+                Themed(_inner.GetView(position, convertView, parent));
+
+            public override View GetDropDownView(int position, View convertView, ViewGroup parent) =>
+                Themed(_inner.GetDropDownView(position, convertView, parent));
+
+            private static View Themed(View row)
+            {
+                if (row is TextView tv)
+                    ApplyColorAndFont(tv, ThemeSlot.UnlockPasswordText);
+                return row;
+            }
+        }
+
         // ---- dialogs ------------------------------------------------------------------------------
 
         /// <summary>
@@ -259,7 +512,15 @@ namespace keepass2android.Theming
                 }
                 if (TryColor(ctx, ThemeSlot.PageText, out var text))
                 {
+                    // AppCompat's title id, or the framework's internal one (ProgressDialog and
+                    // other android.app dialogs).
                     var title = dialog.FindViewById<TextView>(Resource.Id.alertTitle);
+                    if (title == null)
+                    {
+                        int frameworkTitle = ctx.Resources.GetIdentifier("alertTitle", "id", "android");
+                        if (frameworkTitle != 0)
+                            title = dialog.FindViewById<TextView>(frameworkTitle);
+                    }
                     title?.SetTextColor(text);
                     var message = dialog.FindViewById<TextView>(Android.Resource.Id.Message);
                     message?.SetTextColor(text);
@@ -270,10 +531,27 @@ namespace keepass2android.Theming
                     ad.GetButton((int)Android.Content.DialogButtonType.Negative)?.SetTextColor(accent);
                     ad.GetButton((int)Android.Content.DialogButtonType.Neutral)?.SetTextColor(accent);
                 }
+                if (hasAccent)
+                    TintProgressBars(dialog.Window?.DecorView, accent);
             }
             catch (Exception e)
             {
                 Kp2aLog.Log("Theme: ApplyAlertDialog failed: " + e);
+            }
+        }
+
+        /// <summary>The spinner of a progress dialog (and any other progress bar in the tree).</summary>
+        private static void TintProgressBars(View v, Color accent)
+        {
+            if (v is ProgressBar pb)
+            {
+                pb.IndeterminateTintList = Csl(accent);
+                pb.ProgressTintList = Csl(accent);
+            }
+            else if (v is ViewGroup vg)
+            {
+                for (int i = 0; i < vg.ChildCount; i++)
+                    TintProgressBars(vg.GetChildAt(i), accent);
             }
         }
 

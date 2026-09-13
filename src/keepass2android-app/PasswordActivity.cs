@@ -756,7 +756,7 @@ namespace keepass2android
 
       Util.SetNoPersonalizedLearning(FindViewById<EditText>(Resource.Id.password_edit));
 
-
+      ApplyUnlockFormTheme();
     }
 
     private void InitializeAfterSetIoc()
@@ -957,10 +957,10 @@ namespace keepass2android
     {
       var btn = FindViewById<ImageButton>(Resource.Id.fingerprintbtn);
 
-      btn.SetImageResource(Resource.Drawable.ic_fingerprint_error);
+      keepass2android.Theming.Kp2aTheme.SetFingerprintIcon(btn, Resource.Drawable.ic_fingerprint_error);
       btn.PostDelayed(() =>
       {
-        btn.SetImageResource(Resource.Drawable.baseline_fingerprint_24);
+        keepass2android.Theming.Kp2aTheme.SetFingerprintIcon(btn, Resource.Drawable.baseline_fingerprint_24);
       }, 1300);
       App.Kp2a.ShowMessage(this, message, MessageSeverity.Error);
     }
@@ -974,7 +974,7 @@ namespace keepass2android
     {
       var btn = FindViewById<ImageButton>(Resource.Id.fingerprintbtn);
 
-      btn.SetImageResource(Resource.Drawable.ic_fingerprint_success);
+      keepass2android.Theming.Kp2aTheme.SetFingerprintIcon(btn, Resource.Drawable.ic_fingerprint_success);
 
       try
       {
@@ -1064,12 +1064,8 @@ namespace keepass2android
 
       var collapsingToolbar = FindViewById<CollapsingToolbarLayout>(Resource.Id.collapsing_toolbar);
       collapsingToolbar.SetTitle(GetString(Resource.String.unlock_database_title));
-      // Fork (白い熊 鍵暗号 UI): themed toolbar title colour.
-      if (keepass2android.Theming.Kp2aTheme.TryColor(this, keepass2android.Theming.ThemeSlot.ToolbarTitle, out var titleColor))
-      {
-        collapsingToolbar.SetCollapsedTitleTextColor(titleColor);
-        collapsingToolbar.SetExpandedTitleColor(titleColor);
-      }
+      // Fork (白い熊 鍵暗号 UI): the banner in the unlock background (no blue artwork), title in the themed colour/font.
+      keepass2android.Theming.Kp2aTheme.ApplyUnlockBanner(this);
 
       _drawerLayout = FindViewById<DrawerLayout>(Resource.Id.drawer_layout);
       mDrawerToggle = new ActionBarDrawerToggle(this, _drawerLayout,
@@ -1083,6 +1079,9 @@ namespace keepass2android
       SupportActionBar.SetDisplayHomeAsUpEnabled(true);
       SupportActionBar.SetHomeButtonEnabled(true);
       mDrawerToggle.SyncState();
+      // Fork (白い熊 鍵暗号 UI): the hamburger in the title-row icon colour.
+      if (keepass2android.Theming.Kp2aTheme.TryColor(this, keepass2android.Theming.ThemeSlot.TitlebarIcon, out var hamburger))
+        mDrawerToggle.DrawerArrowDrawable.Color = hamburger.ToArgb();
 
     }
 
@@ -1599,8 +1598,30 @@ namespace keepass2android
         ApplyUnlockText(Resource.Id.filename, keepass2android.Theming.ThemeSlot.UnlockFilename);
         ApplyUnlockText(Resource.Id.pass_ok, keepass2android.Theming.ThemeSlot.UnlockButtonText);
         ApplyUnlockText(Resource.Id.change_db, keepass2android.Theming.ThemeSlot.UnlockButtonText);
+        // Wrapping a spinner's adapter resets its selection: do the key-type spinner here, before
+        // InitializePasswordModeSpinner selects the mode and attaches ItemSelected.
+        keepass2android.Theming.Kp2aTheme.ApplySpinner(FindViewById<Spinner>(Resource.Id.password_mode_spinner));
       }
       catch (Exception e) { Kp2aLog.Log("Theme: ApplyUnlockTheme failed: " + e); }
+    }
+
+    // Fork (白い熊 鍵暗号 UI): the rest of the screen, once the stock setup has run — every field,
+    // label, checkbox, icon and button of the form; the drawer; the rule above the bottom bar.
+    private void ApplyUnlockFormTheme()
+    {
+      try
+      {
+        keepass2android.Theming.Kp2aTheme.ApplyUnlockForm(FindViewById(Resource.Id.scrollview));
+
+        keepass2android.Theming.Kp2aTheme.ApplyBackground(FindViewById(Resource.Id.navigation), keepass2android.Theming.ThemeSlot.UnlockBackground);
+        if (keepass2android.Theming.Kp2aTheme.TryColor(this, keepass2android.Theming.ThemeSlot.UnlockBackground, out var bg))
+          FindViewById<ImageView>(Resource.Id.navheader_bg)?.SetImageDrawable(new Android.Graphics.Drawables.ColorDrawable(bg));
+        keepass2android.Theming.Kp2aTheme.ApplyUnlockForm(FindViewById(Resource.Id.navdrawercontents));
+
+        if (keepass2android.Theming.Kp2aTheme.TryColor(this, keepass2android.Theming.ThemeSlot.Accent, out var accent))
+          FindViewById(Resource.Id.divider2)?.SetBackgroundColor(accent);
+      }
+      catch (Exception e) { Kp2aLog.Log("Theme: ApplyUnlockFormTheme failed: " + e); }
     }
 
     private void ApplyUnlockText(int viewId, keepass2android.Theming.ThemeSlot slot)
@@ -2002,7 +2023,7 @@ namespace keepass2android
 
         if (_biometricDec.Init())
         {
-          btn.SetImageResource(Resource.Drawable.baseline_fingerprint_24);
+          keepass2android.Theming.Kp2aTheme.SetFingerprintIcon(btn, Resource.Drawable.baseline_fingerprint_24);
           // Fork (白い熊 鍵暗号 UI): go through the IBiometricAuthCallback overload so the themed
           // fork fingerprint dialog is used (the adapter overload goes straight to the system prompt).
           _biometricDec.StartListening((IBiometricAuthCallback)this);
@@ -2018,7 +2039,7 @@ namespace keepass2android
       catch (Exception e)
       {
         //exception can happen here if the app was restored from Google Backup (including preferences) but no fingerprint data is there.
-        btn.SetImageResource(Resource.Drawable.ic_fingerprint_error);
+        keepass2android.Theming.Kp2aTheme.SetFingerprintIcon(btn, Resource.Drawable.ic_fingerprint_error);
         Kp2aLog.Log("failed to init fingerprint unlock:" + e);
         string error = GetString(Resource.String.FingerprintInitFailed) + " " +
                        GetString(Resource.String.fingerprint_reenable2);
@@ -2038,7 +2059,7 @@ namespace keepass2android
     {
       var btn = FindViewById<ImageButton>(Resource.Id.fingerprintbtn);
       //key invalidated permanently
-      btn.SetImageResource(Resource.Drawable.ic_fingerprint_error);
+      keepass2android.Theming.Kp2aTheme.SetFingerprintIcon(btn, Resource.Drawable.ic_fingerprint_error);
       btn.Tag = GetString(Resource.String.fingerprint_unlock_failed) + " " + GetString(Resource.String.fingerprint_reenable2);
       _biometricDec = null;
 

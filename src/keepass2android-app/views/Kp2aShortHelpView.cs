@@ -96,11 +96,13 @@ namespace keepass2android.views
           string title = Context.GetString(AppNames.AppNameResource);
           if (!string.IsNullOrEmpty(TitleText))
             title = TitleText;
-          new MaterialAlertDialogBuilder(Context)
+          // Fork (白い熊 鍵暗号 UI): black-yellow dialog surface.
+          keepass2android.Theming.Kp2aTheme.ApplyAlertDialog(
+              new MaterialAlertDialogBuilder(Context)
                       .SetTitle(title)
                       .SetMessage(_helpText)
                       .SetPositiveButton(Android.Resource.String.Ok, (o, eventArgs) => { })
-                  .Show();
+                  .Show());
         };
         Visibility = ViewStates.Visible;
       }

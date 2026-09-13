@@ -37,6 +37,7 @@ using KeePassLib.Serialization;
 using Toolbar = AndroidX.AppCompat.Widget.Toolbar;
 using AndroidX.Core.Content;
 using keepass2android.Utils;
+using keepass2android.Theming;
 
 namespace keepass2android
 {
@@ -90,7 +91,7 @@ namespace keepass2android
       SetSupportActionBar(FindViewById<Toolbar>(Resource.Id.toolbar));
 
       // Fork (白い熊 鍵暗号 UI): tint the title row + status bar.
-      Window?.DecorView?.Post(() => keepass2android.Theming.Kp2aTheme.ApplyToolbarChrome(this, null));
+      Window?.DecorView?.Post(() => Kp2aTheme.ApplyToolbarChrome(this, null));
 
       if (App.Kp2a.GetDbForQuickUnlock().KpDatabase.Name != "")
       {
@@ -192,8 +193,46 @@ namespace keepass2android
         FindViewById(Resource.Id.QuickUnlockBlocked).Visibility = ViewStates.Gone;
       }
 
+      ApplyQuickUnlockTheme();
+    }
 
+    // Fork (白い熊 鍵暗号 UI): the whole screen in the unlock-screen slots — banner, the form (labels,
+    // password field, fingerprint icon, the "screen lock required" panel) and the bottom bar.
+    private void ApplyQuickUnlockTheme()
+    {
+      try
+      {
+        Kp2aTheme.ApplyBackground(FindViewById(Android.Resource.Id.Content), ThemeSlot.UnlockBackground);
+        Kp2aTheme.ApplyUnlockBanner(this);
+        ApplyUnlockText(Resource.Id.filename_label, ThemeSlot.UnlockFilename);
 
+        // "Screen lock required" panel: black surface with an accent border (its text and buttons
+        // are themed by the form walk below).
+        var blocked = FindViewById(Resource.Id.QuickUnlockBlocked);
+        if (blocked != null && Kp2aTheme.TryColor(this, ThemeSlot.UnlockBackground, out var bg))
+        {
+          var shape = new Android.Graphics.Drawables.GradientDrawable();
+          shape.SetColor(bg);
+          shape.SetCornerRadius(Util.convertDpToPixel(12, this));
+          if (Kp2aTheme.TryColor(this, ThemeSlot.Accent, out var border))
+            shape.SetStroke((int)Util.convertDpToPixel(2, this), border);
+          blocked.Background = shape;
+        }
+        Kp2aTheme.ApplyUnlockForm(FindViewById(Resource.Id.scrollview));
+
+        ApplyUnlockText(Resource.Id.QuickUnlock_button, ThemeSlot.UnlockButtonText);
+        ApplyUnlockText(Resource.Id.QuickUnlock_buttonLock, ThemeSlot.UnlockButtonText);
+        if (Kp2aTheme.TryColor(this, ThemeSlot.Accent, out var accent))
+          FindViewById(Resource.Id.divider2)?.SetBackgroundColor(accent);
+      }
+      catch (Exception e) { Kp2aLog.Log("Theme: ApplyQuickUnlockTheme failed: " + e); }
+    }
+
+    private void ApplyUnlockText(int viewId, ThemeSlot slot)
+    {
+      var tv = FindViewById<TextView>(viewId);
+      if (tv != null)
+        Kp2aTheme.ApplyColorAndFont(tv, slot, this);
     }
 
     private bool QuickUnlockFromDatabaseEnabled =>
@@ -228,10 +267,10 @@ namespace keepass2android
       Kp2aLog.Log("fingerprint error: " + message);
       var btn = FindViewById<ImageButton>(Resource.Id.fingerprintbtn);
 
-      btn.SetImageResource(Resource.Drawable.ic_fingerprint_error);
+      Kp2aTheme.SetFingerprintIcon(btn, Resource.Drawable.ic_fingerprint_error);
       btn.PostDelayed(() =>
       {
-        btn.SetImageResource(Resource.Drawable.baseline_fingerprint_24);
+        Kp2aTheme.SetFingerprintIcon(btn, Resource.Drawable.baseline_fingerprint_24);
 
       }, 1300);
       App.Kp2a.ShowMessage(this, message, MessageSeverity.Error);
@@ -254,7 +293,7 @@ namespace keepass2android
       _biometryIdentifier.StopListening();
       var btn = FindViewById<ImageButton>(Resource.Id.fingerprintbtn);
 
-      btn.SetImageResource(Resource.Drawable.ic_fingerprint_success);
+      Kp2aTheme.SetFingerprintIcon(btn, Resource.Drawable.ic_fingerprint_success);
 
       EditText pwd = (EditText)FindViewById(Resource.Id.QuickUnlock_password);
       pwd.Text = ExpectedPasswordPart;
@@ -314,7 +353,7 @@ namespace keepass2android
         if (_biometryIdentifier.Init())
         {
           Kp2aLog.Log("successfully initialized fingerprint.");
-          btn.SetImageResource(Resource.Drawable.baseline_fingerprint_24);
+          Kp2aTheme.SetFingerprintIcon(btn, Resource.Drawable.baseline_fingerprint_24);
           _biometryIdentifier.StartListening(this);
           return true;
         }
@@ -327,7 +366,7 @@ namespace keepass2android
       catch (Exception e)
       {
         Kp2aLog.Log("Error initializing Fingerprint Unlock: " + e);
-        btn.SetImageResource(Resource.Drawable.ic_fingerprint_error);
+        Kp2aTheme.SetFingerprintIcon(btn, Resource.Drawable.ic_fingerprint_error);
         btn.Tag = "Error initializing Fingerprint Unlock: " + e;
 
         _biometryIdentifier = null;
@@ -340,7 +379,7 @@ namespace keepass2android
     {
       var btn = FindViewById<ImageButton>(Resource.Id.fingerprintbtn);
       //key invalidated permanently
-      btn.SetImageResource(Resource.Drawable.ic_fingerprint_error);
+      Kp2aTheme.SetFingerprintIcon(btn, Resource.Drawable.ic_fingerprint_error);
       btn.Tag = GetString(Resource.String.fingerprint_unlock_failed) + " " + GetString(Resource.String.fingerprint_reenable2);
       _biometryIdentifier = null;
     }
@@ -451,7 +490,7 @@ namespace keepass2android
           {
             b.SetNegativeButton(Resource.String.disable_sensor, (senderAlert, alertArgs) =>
                   {
-                    btn.SetImageResource(Resource.Drawable.ic_fingerprint_error);
+                    Kp2aTheme.SetFingerprintIcon(btn, Resource.Drawable.ic_fingerprint_error);
                     _biometryIdentifier?.StopListening();
                     _biometryIdentifier = null;
                   });
@@ -463,7 +502,8 @@ namespace keepass2android
                     InitFingerprintUnlock();
                   });
           }
-          b.Show();
+          // Fork (白い熊 鍵暗号 UI): black-yellow dialog surface.
+          Kp2aTheme.ApplyAlertDialog(b.Show());
         }
 
 

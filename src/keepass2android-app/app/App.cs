@@ -901,6 +901,8 @@ namespace keepass2android
           try
           {
             _pd.Show();
+            // Fork (白い熊 鍵暗号 UI): black surface, accent border, themed title/message and spinner.
+            keepass2android.Theming.Kp2aTheme.ApplyAlertDialog(_pd);
           }
           catch (Exception e)
           {

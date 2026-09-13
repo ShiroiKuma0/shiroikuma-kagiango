@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fork (白い熊 鍵暗号 UI): theme-level colours. The runtime slots cannot reach the window the
+     system draws before an activity's first frame (the launch splash and its status bar), so the
+     signature black is fixed here as well. -->
+<resources>
+  <color name="shiroikuma_window_black">#000000</color>
+</resources>
