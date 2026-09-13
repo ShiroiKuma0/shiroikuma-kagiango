@@ -1,7 +1,7 @@
 # 白い熊 鍵暗号 — changes on top of keepass2android
 
 Fork of [keepass2android](https://github.com/PhilippC/keepass2android) `1.15-r3`, branch `custom`.
-Everything below is on top of stock. Current release: **1.15-r3+008** (2026-09-05).
+Everything below is on top of stock. Current release: **1.15-r3+012** (2026-09-13).
 
 Rebased onto upstream `1.15-r3` (versionCode 251), which brings the #3066 fix — background sync no
 longer loses the keyfile — plus Crowdin translation updates. The fork build counter restarts at `+1`
@@ -28,13 +28,17 @@ on each new upstream line; versionCode `<UPSTREAM_CODE>*10000+N` keeps upgrades 
 - **kxkb heading style**: a section is a full-width 1px spacer marking the border with the previous group, then a 20 sp bold accent title carrying a **word-width** underline; sub-headings are the same one size down (17 sp, 1.5 dp underline), indented and without the full-width spacer.
 
 ## Themed surfaces (black-yellow everywhere)
-- **Unlock screen** (`PasswordActivity`): background, labels, password field, buttons, filename, collapsing-toolbar title.
+- **Unlock screen** (`PasswordActivity`), themed end to end from `1.15-r3+012`: the blue `toolbar_bg` banner artwork is a solid unlock-background fill, with the app bar, the scrims shown when the bar folds under the keyboard, the window status-bar colour and the drawer's status-bar strip following it; the collapsing title takes the toolbar-title colour and font. A **walk over the whole form** (`Kp2aTheme.ApplyUnlockForm`) puts every element into the unlock slots — labels and checkbox captions, fields with hint, underline and cursor, buttons (filled ones black with an accent border, compound icons tinted), checkbox boxes, icons, spinners (a wrapped adapter for the selected and dropdown rows, accent arrow, black popup with an accent border) and the hairline rules — so the key-file, OTP and challenge-response modes are covered as well as password-only. Hamburger in the title-row icon colour; the eye icon's hard-coded grey filter replaced; the resting fingerprint icon accent while the error/success icons keep their own colours. The navigation drawer (surface, header, app name, buttons with icons) follows.
 - **Entry & group lists** (`PwEntryView`/`PwGroupView`): titles, usernames, group paths; traced list icons (black body, yellow ring, yellow line content).
 - **Title rows**: group screens, search results, and TOTP search use a NoActionBar theme + own toolbar (the Material 3 ActionBar surface tint ignores runtime overrides) so background, title, icons, and status bar are fully themeable.
 - **FABs**: black background, yellow border, yellow icon.
 - **Settings pages** (app settings, database settings, and the UI page itself): NoActionBar + own toolbar; preference rows themed live as they attach (titles, subtitles, category headers, icons, accent-tinted switches and checkboxes); slots for settings background / item title / item subtitle / category header.
 - **Entry view**: own toolbar, themed background, field-label and field-value slots, traced-icon tint for the per-field icons and three-dot menus, accent on outlined buttons (previous versions, restore/remove history, attachments) and the TOTP countdown bar, themed edit FAB; re-themes when a plugin injects a field.
-- **Start screen, database-selection screens, QuickUnlock**: title row and status bar themed.
+- **Start screen, database-selection screens**: title row and status bar themed.
+- **QuickUnlock**: the same banner treatment and form walk as the unlock screen (the blue watch-shield artwork gone, title, filename, label, field, fingerprint icon, bottom bar, the rule above it); the "screen lock required" panel on a bordered black surface; the sensor error/enable dialog themed.
+- **The launch window**: the placeholder Android draws while an activity is still starting — the zoom-in flash — comes from the theme alone, before any runtime theming can run, and showed the Material primary status bar over a dark grey window. `android:statusBarColor`, `android:windowBackground` and `android:windowSplashScreenBackground` are `#000000` in all four `Kp2aTheme_*` styles and their API-35 overrides (`Resources/values/colors_shiroikuma.xml`), so the flash is black.
+- **Progress dialogs**: the framework `ProgressDialog` behind "Working…" (every unlock, save, sync and export) and the unlock screen's delayed "Loading…" dialog go through the fork's dialog themer, which now finds the framework dialog's title and tints progress spinners — black surface, 2 dp yellow border, yellow title, message and spinner.
+- **Help glyphs**: the (i) help view is drawn with an icon font, so it takes colour only and the global app-font pass skips it; its help dialog is themed.
 - **Dialogs**: generic alert-dialog theming (black rounded surface, 2dp yellow border, themed title/message, accent buttons).
 - **Launcher icon**: black-yellow (traced lock mark in `#FFFF00`).
 
