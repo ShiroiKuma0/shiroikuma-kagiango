@@ -46,8 +46,30 @@ namespace keepass2android
       MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(ctx);
       builder.SetTitle(ctx.GetString(Resource.String.ChangeLog_title));
       List<string> changeLog = new List<string>{
-                // Fork (白い熊 鍵暗号): our changes, newest first. All fork work sits on top of
-                // upstream 1.15-r2, so the chronological merge places these above Version 1.15.
+                // Fork (白い熊 鍵暗号): our changes, newest first — one entry per published build.
+                // All fork work sits on top of upstream 1.15, so the chronological merge places
+                // these above Version 1.15.
+                BuildForkChangelogString("1.15-r3+012", "2026-09-13", new[]{
+                    "Unlock screen and QuickUnlock themed end to end: the blue banner artwork replaced by the unlock background; every label, field (hint, underline, cursor), checkbox, icon, button, spinner row and hairline in the palette, in every master-key mode; the navigation drawer too",
+                    "The launch flash is black: status bar, window and splash background set in the theme itself, since the window Android shows while the app starts is drawn before any of our code runs",
+                    "The \"Working…\" progress dialog after every unlock (and for save, sync and export) and the \"Loading…\" dialog: black surface, yellow border, yellow text and spinner",
+                    "Help (i) glyph keeps its icon font under a global app font; its help dialog themed"}),
+                BuildForkChangelogString("1.15-r3+008", "2026-09-05", new[]{
+                    "arm64-v8a only: the APK drops the armeabi-v7a, x86 and x86_64 payload (54 MB → 23 MB) and is named shiroikuma-kagiango_<version>_arm64-v8a.apk; the build aborts unless the finished APK holds exactly that one ABI"}),
+                BuildForkChangelogString("1.15-r3+007", "2026-09-05", new[]{
+                    "Build counter zero-padded to three digits in the version name (+007), so builds sort in order everywhere; earlier tags stay as they are"}),
+                BuildForkChangelogString("1.15-r3+6", "2026-09-04", new[]{
+                    "保存復元 automation contract v2: automation on by default, the authorization token optional (off by default, and a token sent when none is asked for is ignored rather than refused)",
+                    "Data door for 白い熊 応用管理: an exported ContentProvider (describe / export / import / cancel) that admits a caller only on exact package name, kernel uid and pinned signing certificate, moves the backup through a file descriptor the caller opens, and is the only place an import exists",
+                    "Backup work runs as a dataSync foreground service; imports are spooled to a file and committed synchronously so a force-stop right after success loses nothing"}),
+                BuildForkChangelogString("1.15-r3+3", "2026-07-31", new[]{
+                    "Backup: each category says whether it starts ticked (only the debug log starts off) — the in-app sheet and LIST_CATEGORIES use the same answer",
+                    "CANCEL_EXPORT stops a running export at the next category boundary and takes its partial file with it",
+                    "Exports are built under a .part name and renamed only once whole, so a failed or cancelled run leaves the backup folder untouched"}),
+                BuildForkChangelogString("1.15-r3+2", "2026-07-25", new[]{
+                    "Rebased onto upstream 1.15-r3 (background sync no longer loses the key file; translation updates)",
+                    "Export / Import as the first section of the 白い熊 鍵暗号 UI page: one timestamped ZIP of every setting across eleven categories (colours, fonts and their files, display and language, security, QuickUnlock, password access, file handling, TrayTotp, generator profiles, debug), with an allow-list that never writes the Keystore-wrapped master password or a stored remote login; import merges key by key",
+                    "保存復元 automation contract: EXPORT_STATE / LIST_CATEGORIES broadcasts for a headless backup by a sister app, with real progress counts and one terminal reply"}),
                 BuildForkChangelogString("1.15-r2+13", "2026-07-24", new[]{
                     "Black-yellow title row and status bar on the start, database-selection and QuickUnlock screens"}),
                 BuildForkChangelogString("1.15-r2+12", "2026-07-24", new[]{
@@ -205,7 +227,8 @@ namespace keepass2android
     {
       string result = "白い熊 鍵暗号 " + version + " (" + date + ")\n";
       foreach (var item in items)
-        result += " * " + item + "\n";
+        // fork items are plain text, and the log is rendered as HTML: keep a literal <version> visible
+        result += " * " + item.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;") + "\n";
       return result;
     }
 
