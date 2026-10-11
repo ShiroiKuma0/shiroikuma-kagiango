@@ -10,7 +10,7 @@ A fork of [keepass2android](https://github.com/PhilippC/keepass2android) with **
 
 Installs **side-by-side** with Keepass2Android (app id `shiroikuma.kagiango`). Built for **arm64-v8a**.
 
-**📥 Latest release: [`1.15-r3+012`](https://github.com/ShiroiKuma0/shiroikuma-kagiango/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-kagiango/releases)
+**📥 Latest release: [`1.15-r3+015`](https://github.com/ShiroiKuma0/shiroikuma-kagiango/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-kagiango/releases)
 
 </div>
 
@@ -23,6 +23,8 @@ A dedicated theming page (reachable from Settings, the overflow menu, or a long-
 Not just a dark theme: the unlock screen, database chooser, group lists, entry view, settings pages, QuickUnlock, dialogs, the status bar, and the launcher icon all follow the black-yellow palette. Where Material 3 refuses runtime coloring (its ActionBar surface tint), screens carry their own toolbars so the title rows obey the theme too.
 
 The two unlock screens are themed **end to end** — no blue banner artwork, no grey labels, no white spinner text or blue checkbox: every field, hint, underline, cursor, icon, button, spinner row and hairline is in the palette, in every master-key mode, and so is the drawer behind the hamburger. The black reaches even where runtime code cannot: the window Android shows while the app is still launching is black rather than the stock blue-barred flash, and the “Working…” dialog after every unlock is a black surface with a yellow border.
+
+Adding or editing an entry stays in the palette too: the template picker is a narrow column of yellow-bordered buttons, and the editor's fields, icons, buttons and dialogs are black with yellow outlines — no grey title row, no light-green generator button.
 
 ## 💾 Export / import every setting — as one ZIP
 The first section of the UI page backs the app up and restores it. Tick what you want — colors, fonts (and the font files you imported), display and language, security, QuickUnlock, password access, file handling, TrayTotp, password-generator profiles, debug — and Export writes **a single timestamped ZIP**; Import merges it back key by key, so a restore never destroys what it didn't cover. Categories mirror the app's own settings screens and their keys are read from the preference definitions at runtime, so settings a future upstream adds are carried along automatically.

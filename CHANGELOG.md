@@ -1,7 +1,7 @@
 # 白い熊 鍵暗号 — changes on top of keepass2android
 
 Fork of [keepass2android](https://github.com/PhilippC/keepass2android) `1.15-r3`, branch `custom`.
-Everything below is on top of stock. Current release: **1.15-r3+012** (2026-09-13).
+Everything below is on top of stock. Current release: **1.15-r3+015** (2026-10-11).
 
 Rebased onto upstream `1.15-r3` (versionCode 251), which brings the #3066 fix — background sync no
 longer loses the keyfile — plus Crowdin translation updates. The fork build counter restarts at `+1`
@@ -39,6 +39,8 @@ on each new upstream line; versionCode `<UPSTREAM_CODE>*10000+N` keeps upgrades 
 - **The launch window**: the placeholder Android draws while an activity is still starting — the zoom-in flash — comes from the theme alone, before any runtime theming can run, and showed the Material primary status bar over a dark grey window. `android:statusBarColor`, `android:windowBackground` and `android:windowSplashScreenBackground` are `#000000` in all four `Kp2aTheme_*` styles and their API-35 overrides (`Resources/values/colors_shiroikuma.xml`), so the flash is black.
 - **Progress dialogs**: the framework `ProgressDialog` behind "Working…" (every unlock, save, sync and export) and the unlock screen's delayed "Loading…" dialog go through the fork's dialog themer, which now finds the framework dialog's title and tints progress spinners — black surface, 2 dp yellow border, yellow title, message and spinner.
 - **Help glyphs**: the (i) help view is drawn with an icon font, so it takes colour only and the global app-font pass skips it; its help dialog is themed.
+- **Entry editor** (Add entry / Edit entry), themed end to end from `1.15-r3+015`: own toolbar (title, back, save and close in the title-row slots, black status bar) and the entry-view background. A walk over the whole form (`Kp2aTheme.ApplyEditForm`) gives every outlined field a yellow box (1 dp, 2 dp while focused), yellow hint and start/end icons (person, password, link, notes, tag, the eye toggle) and yellow text, cursor, selection and handles; the outlined buttons (add additional string, configure TOTP, add/delete attachment) yellow text, icon and border; the filled password-generator button black with a yellow ring; the entry-icon button a bordered black plate around the entry's own icon; the `…`/paperclip icons, the expiry checkbox and its field in the palette. Extra-string rows and attachment buttons created while editing are themed as they are added. The dialogs opened from the editor — edit extra string, TOTP setup (radios and algorithm dropdown included), discard changes, overwrite attachment — get the dialog chrome and the same form walk.
+- **New-entry template picker** (Standard entry / Credit card / E-Mail / …), from `1.15-r3+015`: black surface with a 2 dp yellow border; every template is its own rounded, yellow-bordered button with a press ripple, separated by gaps, so each row reads as something to tap; yellow text and icons instead of the grey filter; the dialog is only as wide as its widest row rather than Material's fixed width.
 - **Dialogs**: generic alert-dialog theming (black rounded surface, 2dp yellow border, themed title/message, accent buttons).
 - **Launcher icon**: black-yellow (traced lock mark in `#FFFF00`).
 
