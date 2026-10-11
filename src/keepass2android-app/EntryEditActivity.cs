@@ -297,6 +297,8 @@ namespace keepass2android
 
 
       dialog.Show();
+      Theming.Kp2aTheme.ApplyAlertDialog(dialog);
+      Theming.Kp2aTheme.ApplyEditForm(dlgView);
 
     }
 
@@ -453,6 +455,8 @@ namespace keepass2android
       Util.SetNoPersonalizedLearning(dlgView);
 
       dialog.Show();
+      Theming.Kp2aTheme.ApplyAlertDialog(dialog);
+      Theming.Kp2aTheme.ApplyEditForm(dlgView);
 
     }
 
@@ -592,7 +596,7 @@ namespace keepass2android
   }
 
 
-  [Activity(Label = "@string/app_name", ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.Keyboard | ConfigChanges.KeyboardHidden, Theme = "@style/Kp2aTheme_ActionBar")]
+  [Activity(Label = "@string/app_name", ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.Keyboard | ConfigChanges.KeyboardHidden, Theme = "@style/Kp2aTheme_NoActionBar")]
   public class EntryEditActivity : LockCloseActivity
   {
 
@@ -669,6 +673,9 @@ namespace keepass2android
       AppTask = AppTask.GetTaskInOnCreate(savedInstanceState, Intent);
 
       SetContentView(Resource.Layout.entry_edit);
+      // Fork (白い熊 鍵暗号 UI): NoActionBar theme + our own toolbar, so the title row obeys the
+      // runtime colour overrides (the Material 3 ActionBar ignores them).
+      SetSupportActionBar(FindViewById<AndroidX.AppCompat.Widget.Toolbar>(Resource.Id.entry_edit_toolbar));
       _closeForReload = false;
 
       Util.SetNoPersonalizedLearning(FindViewById(Resource.Id.entry_scroll));
@@ -859,9 +866,18 @@ namespace keepass2android
         State.EntryModified = true;
       };
 
+      ThemeEditView();
+    }
 
-
-
+    // Fork (白い熊 鍵暗号 UI): the edit page in the entry-view palette — background, the whole form,
+    // and the extra-string / attachment rows that are added after this first pass.
+    private void ThemeEditView()
+    {
+      Theming.Kp2aTheme.ApplyBackground(FindViewById(Resource.Id.main_content), Theming.ThemeSlot.EntryViewBackground);
+      Theming.Kp2aTheme.ApplyBackground(FindViewById(Resource.Id.entry_scroll), Theming.ThemeSlot.EntryViewBackground);
+      Theming.Kp2aTheme.ApplyEditForm(FindViewById(Resource.Id.entry_scroll));
+      Theming.Kp2aTheme.ApplyEditFormLive(FindViewById<ViewGroup>(Resource.Id.advanced_container));
+      Theming.Kp2aTheme.ApplyEditFormLive(FindViewById<ViewGroup>(Resource.Id.binaries));
     }
 
     private void UpdateIconButton()
@@ -928,6 +944,7 @@ namespace keepass2android
 
         Dialog dialog = builder.Create();
         dialog.Show();
+        Theming.Kp2aTheme.ApplyAlertDialog(dialog);
 
 
       }
@@ -1321,6 +1338,7 @@ namespace keepass2android
 
         Dialog dialog = builder.Create();
         dialog.Show();
+        Theming.Kp2aTheme.ApplyAlertDialog(dialog);
       }
 
     }
@@ -1493,6 +1511,8 @@ namespace keepass2android
       MenuInflater inflater = MenuInflater;
       inflater.Inflate(Resource.Menu.entry_edit, menu);
 
+      // Fork (白い熊 鍵暗号 UI): tint the title row background/title + menu icons.
+      Window.DecorView.Post(() => Theming.Kp2aTheme.ApplyToolbarChrome(this, menu));
 
       return true;
     }

@@ -172,6 +172,9 @@ namespace keepass2android
 
         tv.CompoundDrawablePadding = (int)Util.convertDpToPixel(8, Context);
 
+        // Fork (白い熊 鍵暗号 UI): row text and icon in the palette.
+        keepass2android.Theming.Kp2aTheme.ApplyListDialogRow(tv);
+
         return v;
       }
     };
@@ -276,11 +279,13 @@ namespace keepass2android
       }
       if (templates.Count > 1)
       {
-        new MaterialAlertDialogBuilder(this)
+        var templateDialog = new MaterialAlertDialogBuilder(this)
             .SetAdapter(new TemplateListAdapter(this, Android.Resource.Layout.SelectDialogItem,
                 Android.Resource.Id.Text1, templates),
                 (o, args) => { EntryEditActivity.Launch(this, Group, templates[args.Which].Uuid, AppTask); })
             .Show();
+        // Fork (白い熊 鍵暗号 UI): black surface, yellow border.
+        keepass2android.Theming.Kp2aTheme.ApplyListDialog(templateDialog);
       }
       else
       {

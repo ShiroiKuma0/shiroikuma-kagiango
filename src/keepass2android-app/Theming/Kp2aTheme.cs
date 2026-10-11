@@ -526,8 +526,7 @@ namespace keepass2android.Theming
                     message?.SetTextColor(text);
                 }
                 if (hasAccent && dialog is AndroidX.AppCompat.App.AlertDialog ad)
-                {
-                    ad.GetButton((int)Android.Content.DialogButtonType.Positive)?.SetTextColor(accent);
+                {                    ad.GetButton((int)Android.Content.DialogButtonType.Positive)?.SetTextColor(accent);
                     ad.GetButton((int)Android.Content.DialogButtonType.Negative)?.SetTextColor(accent);
                     ad.GetButton((int)Android.Content.DialogButtonType.Neutral)?.SetTextColor(accent);
                 }
@@ -552,6 +551,264 @@ namespace keepass2android.Theming
             {
                 for (int i = 0; i < vg.ChildCount; i++)
                     TintProgressBars(vg.GetChildAt(i), accent);
+            }
+        }
+
+        /// <summary>
+        /// A list dialog (MaterialAlertDialogBuilder.SetAdapter): the alert-dialog chrome plus every
+        /// row as a bordered button (text in the page-text colour/font, icon in the icon colour), and
+        /// the dialog only as wide as its widest row.
+        /// Rows are recycled, so the adapter's GetView also calls ApplyListDialogRow.
+        /// </summary>
+        public static void ApplyListDialog(AndroidX.AppCompat.App.AlertDialog dialog)
+        {
+            if (dialog == null)
+                return;
+            ApplyAlertDialog(dialog);
+            try
+            {
+                Context ctx = dialog.Context;
+                var list = dialog.ListView;
+                if (list == null)
+                    return;
+                // rows are drawn as separate bordered buttons, so the gaps between them are the divider
+                list.Divider = new ColorDrawable(Color.Transparent);
+                list.DividerHeight = Dp(ctx, 10);
+                list.Selector = new ColorDrawable(Color.Transparent);
+                int pad = Dp(ctx, 16);
+                list.SetPadding(pad, pad, pad, pad);
+                list.SetClipToPadding(false);
+                for (int i = 0; i < list.ChildCount; i++)
+                    ApplyListDialogRow(list.GetChildAt(i));
+
+                // as wide as the widest row, not Material's fixed dialog width
+                var adapter = list.Adapter;
+                if (adapter != null && dialog.Window != null)
+                {
+                    int widest = 0;
+                    int unspecified = View.MeasureSpec.MakeMeasureSpec(0, MeasureSpecMode.Unspecified);
+                    for (int i = 0; i < adapter.Count; i++)
+                    {
+                        View row = adapter.GetView(i, null, list);
+                        row.Measure(unspecified, unspecified);
+                        widest = Math.Max(widest, row.MeasuredWidth);
+                    }
+                    int max = ctx.Resources.DisplayMetrics.WidthPixels - Dp(ctx, 32);
+                    int width = Math.Min(max, widest + 2 * pad + Dp(ctx, 8));
+                    dialog.Window.SetLayout(width, ViewGroup.LayoutParams.WrapContent);
+                }
+            }
+            catch (Exception e)
+            {
+                Kp2aLog.Log("Theme: ApplyListDialog failed: " + e);
+            }
+        }
+
+        public static void ApplyListDialogRow(View row)
+        {
+            if (row is not TextView tv)
+                return;
+            ApplyColorAndFont(tv, ThemeSlot.PageText);
+            Context ctx = tv.Context;
+            if (TryColor(ctx, ThemeSlot.PageBackground, out var bg))
+            {
+                // a bordered button with a press ripple, so each row reads as something to tap
+                bool hasAccent = TryColor(ctx, ThemeSlot.Accent, out var accent);
+                var plate = BorderedSurface(ctx, bg, hasAccent, accent, 12);
+                var ripple = new Color(accent.R, accent.G, accent.B, (byte)0x55);
+                tv.Background = new RippleDrawable(Csl(ripple), plate, null);
+                int side = Dp(ctx, 16);
+                tv.SetPadding(side, tv.PaddingTop, side + Dp(ctx, 8), tv.PaddingBottom);
+            }
+            if (TryColor(tv.Context, ThemeSlot.IconMain, out var icon))
+            {
+                foreach (var d in tv.GetCompoundDrawables())
+                    if (d != null) { d.Mutate(); d.SetColorFilter(new PorterDuffColorFilter(icon, PorterDuff.Mode.SrcAtop)); }
+            }
+        }
+
+        /// <summary>Calls a themer on each child a container gains (rows added after the first walk).</summary>
+        private sealed class ChildThemer : Java.Lang.Object, ViewGroup.IOnHierarchyChangeListener
+        {
+            private readonly Action<View> _apply;
+            public ChildThemer(Action<View> apply) { _apply = apply; }
+            public void OnChildViewAdded(View parent, View child) => _apply(child);
+            public void OnChildViewRemoved(View parent, View child) { }
+        }
+
+        // ---- edit forms (the entry-edit page and its dialogs) -------------------------------------
+
+        /// <summary>
+        /// Walks an edit form and puts it into the entry-view slots: outlined fields get an accent
+        /// box, accent start/end icons and hint, value text in the field-value colour; labels and
+        /// checkbox/radio captions in the field-label colour; every button black with accent
+        /// text/icon/border; spinners and progress bars accent; plain icons in the icon colour.
+        /// </summary>
+        public static void ApplyEditForm(View root)
+        {
+            if (root == null)
+                return;
+            try
+            {
+                WalkEditForm(root, root.Context);
+            }
+            catch (Exception e)
+            {
+                Kp2aLog.Log("Theme: ApplyEditForm failed: " + e);
+            }
+        }
+
+        /// <summary>
+        /// Themes a container's current children and every child added to it later (the extra
+        /// strings and attachment buttons of the entry-edit page are built at run time).
+        /// </summary>
+        public static void ApplyEditFormLive(ViewGroup container)
+        {
+            if (container == null)
+                return;
+            try
+            {
+                container.SetOnHierarchyChangeListener(new ChildThemer(ApplyEditForm));
+                ApplyEditForm(container);
+            }
+            catch (Exception e)
+            {
+                Kp2aLog.Log("Theme: ApplyEditFormLive failed: " + e);
+            }
+        }
+
+        private static GradientDrawable BorderedSurface(Context ctx, Color bg, bool hasAccent, Color accent, int radiusDp)
+        {
+            var shape = new GradientDrawable();
+            shape.SetColor(bg);
+            shape.SetCornerRadius(Dp(ctx, radiusDp));
+            if (hasAccent)
+                shape.SetStroke(Dp(ctx, 2), accent);
+            return shape;
+        }
+
+        /// <summary>
+        /// A text field's colours. tintUnderline is false inside a TextInputLayout, where the
+        /// field's background is the layout's outlined box and a tint would fill it.
+        /// </summary>
+        private static void ThemeEditField(EditText field, Context ctx, bool tintUnderline)
+        {
+            bool hasAccent = TryColor(ctx, ThemeSlot.Accent, out var accent);
+            bool hasBg = TryColor(ctx, ThemeSlot.EntryViewBackground, out var bg);
+            ApplyColorAndFont(field, ThemeSlot.EntryFieldValue, ctx);
+            if (TryColor(ctx, ThemeSlot.EntryFieldValue, out var text))
+                field.SetHintTextColor(new Color(text.R, text.G, text.B, (byte)0x99));
+            if (hasAccent)
+            {
+                if (tintUnderline)
+                    field.BackgroundTintList = Csl(accent);
+                field.SetHighlightColor(new Color(accent.R, accent.G, accent.B, (byte)0x66));
+                if (Build.VERSION.SdkInt >= BuildVersionCodes.Q)
+                {
+                    field.TextCursorDrawable?.SetTint(accent.ToArgb());
+                    field.TextSelectHandle?.SetTint(accent.ToArgb());
+                    field.TextSelectHandleLeft?.SetTint(accent.ToArgb());
+                    field.TextSelectHandleRight?.SetTint(accent.ToArgb());
+                }
+            }
+            if (field is AutoCompleteTextView auto && hasBg)
+                auto.SetDropDownBackgroundDrawable(BorderedSurface(ctx, bg, hasAccent, accent, 8));
+        }
+
+        private static void WalkEditForm(View v, Context ctx)
+        {
+            bool hasAccent = TryColor(ctx, ThemeSlot.Accent, out var accent);
+            bool hasBg = TryColor(ctx, ThemeSlot.EntryViewBackground, out var bg);
+            switch (v)
+            {
+                case Google.Android.Material.TextField.TextInputLayout til:
+                    if (hasAccent)
+                    {
+                        // a non-stateful list only sets the focused stroke; the resting one needs its own state
+                        til.SetBoxStrokeColorStateList(new ColorStateList(
+                            new[] { new[] { Android.Resource.Attribute.StateFocused }, new[] { Android.Resource.Attribute.StateHovered }, new int[0] },
+                            new[] { accent.ToArgb(), accent.ToArgb(), accent.ToArgb() }));
+                        til.BoxStrokeWidth = Dp(ctx, 1);
+                        til.BoxStrokeWidthFocused = Dp(ctx, 2);
+                        til.HintTextColor = Csl(accent);
+                        til.SetStartIconTintList(Csl(accent));
+                        til.SetEndIconTintList(Csl(accent));
+                    }
+                    if (TryColor(ctx, ThemeSlot.EntryFieldLabel, out var hint))
+                        til.DefaultHintTextColor = Csl(new Color(hint.R, hint.G, hint.B, (byte)0x99));
+                    if (hasBg)
+                        til.BoxBackgroundColor = bg.ToArgb();
+                    // only the field: the layout's own start/end icon buttons are tinted above, and
+                    // the field's background is the outlined box itself, so it must not be tinted
+                    if (til.EditText != null)
+                        ThemeEditField(til.EditText, ctx, false);
+                    break;
+                case Spinner spinner:
+                    // wrapping the adapter resets the selection: keep the one the caller chose
+                    int selected = spinner.SelectedItemPosition;
+                    ApplySpinner(spinner);
+                    if (selected >= 0)
+                        spinner.SetSelection(selected);
+                    break;
+                case EditText field:
+                    ThemeEditField(field, ctx, true);
+                    break;
+                case CompoundButton toggle:
+                    ApplyColorAndFont(toggle, ThemeSlot.EntryFieldLabel, ctx);
+                    if (hasAccent)
+                        toggle.ButtonTintList = Csl(accent);
+                    break;
+                case Google.Android.Material.Button.MaterialButton mb:
+                    if (hasBg && (((mb.BackgroundTintList?.DefaultColor ?? 0) >> 24) & 0xFF) != 0)
+                    {
+                        // a filled button (the password generator): black fill, accent ring
+                        mb.BackgroundTintList = Csl(bg);
+                        if (hasAccent)
+                            mb.StrokeWidth = Dp(ctx, 2);
+                    }
+                    if (hasAccent)
+                    {
+                        mb.SetTextColor(accent);
+                        mb.IconTint = Csl(accent);
+                        mb.StrokeColor = Csl(accent);
+                        mb.RippleColor = Csl(new Color(accent.R, accent.G, accent.B, (byte)0x33));
+                        AndroidX.Core.Widget.TextViewCompat.SetCompoundDrawableTintList(mb, Csl(accent));
+                    }
+                    ApplyFont(mb, ThemeColors.KeyOf(ThemeSlot.EntryFieldLabel), ctx);
+                    break;
+                case Button button:
+                    if (hasAccent)
+                    {
+                        button.SetTextColor(accent);
+                        AndroidX.Core.Widget.TextViewCompat.SetCompoundDrawableTintList(button, Csl(accent));
+                    }
+                    ApplyFont(button, ThemeColors.KeyOf(ThemeSlot.EntryFieldLabel), ctx);
+                    break;
+                case TextView label:
+                    ApplyColorAndFont(label, ThemeSlot.EntryFieldLabel, ctx);
+                    break;
+                case ProgressBar pb:
+                    if (hasAccent)
+                    {
+                        pb.IndeterminateTintList = Csl(accent);
+                        pb.ProgressTintList = Csl(accent);
+                    }
+                    break;
+                case ImageButton entryIcon when entryIcon.Id == Resource.Id.icon_button:
+                    // the entry's own icon keeps its drawing; only the grey button plate goes
+                    if (hasBg)
+                        entryIcon.Background = BorderedSurface(ctx, bg, hasAccent, accent, 6);
+                    break;
+                case ImageView image:
+                    if (TryColor(ctx, ThemeSlot.IconMain, out var icon) && image.Drawable != null && !(image.Drawable is ColorDrawable))
+                        image.SetColorFilter(icon);
+                    if (image is ImageButton && hasBg)
+                        image.Background = BorderedSurface(ctx, bg, hasAccent, accent, 6);
+                    break;
+                case ViewGroup group:
+                    for (int i = 0; i < group.ChildCount; i++)
+                        WalkEditForm(group.GetChildAt(i), ctx);
+                    break;
             }
         }
 
