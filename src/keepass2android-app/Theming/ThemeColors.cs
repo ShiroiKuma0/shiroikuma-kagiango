@@ -38,6 +38,7 @@ namespace keepass2android.Theming
         AppFont,            // pseudo-slot: only a global font, no colour
         PageBackground,     // the 白い熊 鍵暗号 UI page's own background
         PageText,           // the 白い熊 鍵暗号 UI page's own text colour + font
+        PageNote,           // the page's descriptions and their left rule (dim gold)
         ToolbarTitle,
         Accent,
         UnlockBackground,
@@ -104,6 +105,7 @@ namespace keepass2android.Theming
             // The 白い熊 鍵暗号 UI page itself
             new ColorSlotInfo(ThemeSlot.PageBackground,     "page_background",      Resource.String.theme_page_background,      ColorGroup.Page,   true,  false),
             new ColorSlotInfo(ThemeSlot.PageText,           "page_text",            Resource.String.theme_page_text,           ColorGroup.Page,   true,  true),
+            new ColorSlotInfo(ThemeSlot.PageNote,           "page_note",            Resource.String.theme_page_note,           ColorGroup.Page,   true,  false),
             // App chrome / foundation
             new ColorSlotInfo(ThemeSlot.ToolbarTitle,       "toolbar_title",        Resource.String.theme_toolbar_title,       ColorGroup.Chrome, true,  true),
             new ColorSlotInfo(ThemeSlot.Accent,             "accent",               Resource.String.theme_accent,              ColorGroup.Chrome, true,  false),

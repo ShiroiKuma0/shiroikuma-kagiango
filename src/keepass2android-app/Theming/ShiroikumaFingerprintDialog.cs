@@ -66,7 +66,7 @@ namespace keepass2android.Theming
         {
             dialog = null;
             ShiroikumaFingerprintDialog d = null;
-            _logContext = activity;
+            _logContext = activity.ApplicationContext; // never the activity: this field is static
             try
             {
                 var fpm = FingerprintManagerCompat.From(activity);

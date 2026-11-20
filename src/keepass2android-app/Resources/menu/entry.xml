@@ -38,6 +38,7 @@
           app:showAsAction="ifRoom"
     />
     <item android:id="@+id/menu_donate"
+        android:visible="false"
         android:title="@string/menu_donate"
         app:showAsAction="ifRoom"
     />

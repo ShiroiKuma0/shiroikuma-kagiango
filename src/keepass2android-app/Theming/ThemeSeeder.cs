@@ -34,6 +34,7 @@ namespace keepass2android.Theming
 
         private const int Black = unchecked((int)0xFF000000);   // #000000
         private const int Yellow = unchecked((int)0xFFFFFF00);  // #FFFF00
+        private const int DimGold = unchecked((int)0xFFC8C800); // #C8C800 — descriptions and their rule
 
         public static void SeedSignaturePaletteIfFirstRun(Context ctx)
         {
@@ -95,6 +96,9 @@ namespace keepass2android.Theming
             SetIf(ctx, ThemeSlot.SettingsCategory, Yellow, force);
             SetIf(ctx, ThemeSlot.EntryFieldLabel, Yellow, force);
             SetIf(ctx, ThemeSlot.EntryFieldValue, Yellow, force);
+
+            // Descriptions on the UI page (black-yellow-theme skill: dim gold, never grey).
+            SetIf(ctx, ThemeSlot.PageNote, DimGold, force);
         }
 
         private static void SetIf(Context ctx, ThemeSlot slot, int argb, bool force)

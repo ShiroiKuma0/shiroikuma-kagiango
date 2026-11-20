@@ -1183,6 +1183,7 @@ namespace keepass2android
       FileDbHelper.Open();
 
       _uiThreadHandler = new Handler(Looper.MainLooper);
+      LeakTracer.Install(app); // Fork: records destroyed screens that stay in memory.
 
 #if DEBUG
       foreach (UiStringKey key in Enum.GetValues(typeof(UiStringKey)))

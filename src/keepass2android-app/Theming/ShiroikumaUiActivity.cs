@@ -69,7 +69,7 @@ namespace keepass2android
         private TextView _automationTokenSummary;
         private View _automationTokenRow;
 
-        /// <summary>The warning colour for "no backup folder set" — the same red the panel uses.</summary>
+        /// <summary>The warning colour for "no backup directory set" — the same red the panel uses.</summary>
         private static readonly Color BackupWarn = new Color(unchecked((int)0xFFFF6666));
 
         public ShiroikumaUiActivity()
@@ -109,6 +109,10 @@ namespace keepass2android
             // Export / Import first, as on the Kōjiki UI page: backing the app up is what 白い熊 reaches
             // for most, and the 保存復元 automation rows belong under it rather than in a section of
             // their own — every sister app puts backup in the same place.
+            // The link to the app's own settings: the first, thick pill, right under the page title.
+            AddPillRow(Resource.String.menu_app_settings, Resource.String.theme_app_settings_desc, 0,
+                main: true, opens: true, () => AppSettingsActivity.Launch(this));
+
             AddBackupSection();
 
             // App language.
@@ -119,10 +123,12 @@ namespace keepass2android
             AddSection(Resource.String.theme_section_page);
             AddSlot(ThemeSlot.PageBackground, 1);
             AddSlot(ThemeSlot.PageText, 1);
+            AddSlot(ThemeSlot.PageNote, 1);
 
             AddSection(Resource.String.theme_section_global);
             AddFontRows(ThemeColors.AppFontKey, 1, Resource.String.theme_app_font);
-            AddActionRow(Resource.String.theme_reset_palette, 1, ResetPalette);
+            AddPillRow(Resource.String.theme_reset_palette, Resource.String.theme_reset_palette_desc, 1,
+                main: false, opens: false, ResetPalette);
 
             AddSection(Resource.String.theme_section_chrome);
             AddSlot(ThemeSlot.ToolbarTitle, 1);
@@ -169,6 +175,13 @@ namespace keepass2android
             AddSlot(ThemeSlot.FabBackground, 1);
             AddSlot(ThemeSlot.FabBorder, 1);
             AddSlot(ThemeSlot.FabIcon, 1);
+
+            // Diagnostics (diagnostics-ui-settings skill): every trace behind its own switch, off by default.
+            AddSection(Resource.String.theme_section_diagnostics);
+            var leakRow = AddDetailRow(Resource.String.diag_leaks_title, GetString(Resource.String.diag_leaks_desc), 1,
+                null, out _, out _);
+            AddTagLine(leakRow, GetString(Resource.String.diag_leaks_tag), GetString(Resource.String.diag_leaks_qualifier));
+            AttachSwitch(leakRow, LeakTracer.IsEnabled(this), value => LeakTracer.SetEnabled(this, value));
 
             ApplyPageBackground();
         }
@@ -245,9 +258,59 @@ namespace keepass2android
             return v;
         }
 
-        private void AddActionRow(int labelRes, int level, Action onClick)
+        /// <summary>
+        /// Something to press (black-yellow-theme skill, "every pressable row is a pill"): a full-width
+        /// outlined pill — never filled — holding the label, 3 dp frame and bold for the main action of its
+        /// section, 1.25 dp otherwise; › inside it when it opens something; the explanation beneath it,
+        /// aligned with the label. The whole pill is the touch target, the explanation is not.
+        /// </summary>
+        private void AddPillRow(int labelRes, int summaryRes, int level, bool main, bool opens, Action onClick)
         {
-            AddValueRow(labelRes, level, onClick, out _);
+            var row = new LinearLayout(this) { Orientation = Android.Widget.Orientation.Horizontal };
+            row.SetPadding(0, Dp(3), Dp(16), Dp(3));
+            var column = new LinearLayout(this) { Orientation = Android.Widget.Orientation.Vertical };
+
+            var label = new TextView(this) { Text = GetString(labelRes) };
+            label.SetTextSize(Android.Util.ComplexUnitType.Sp, 16);
+            ApplyPageLabel(label);
+            Color ink = new Color(label.CurrentTextColor);
+            if (main)
+                label.SetTypeface(label.Typeface, TypefaceStyle.Bold);
+
+            var pill = new LinearLayout(this) { Orientation = Android.Widget.Orientation.Horizontal };
+            pill.SetGravity(GravityFlags.CenterVertical);
+            pill.SetPadding(Dp(18), Dp(9), Dp(16), Dp(9));
+            pill.Background = PillBackground(ink, main);
+            pill.Clickable = true;
+            pill.Focusable = true;
+            pill.Click += (s, e) => onClick();
+            pill.AddView(label, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WrapContent, 1f));
+            if (opens)
+            {
+                var chevron = new TextView(this) { Text = "\u203A" };
+                chevron.SetTextSize(Android.Util.ComplexUnitType.Sp, 22);
+                chevron.SetIncludeFontPadding(false);
+                ApplyPageLabel(chevron);
+                if (main)
+                    chevron.SetTypeface(chevron.Typeface, TypefaceStyle.Bold);
+                var lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WrapContent, ViewGroup.LayoutParams.WrapContent);
+                lp.LeftMargin = Dp(10);
+                pill.AddView(chevron, lp);
+            }
+            column.AddView(pill, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent));
+
+            var summary = new TextView(this) { Text = GetString(summaryRes) };
+            summary.SetTextSize(Android.Util.ComplexUnitType.Sp, 13);
+            summary.SetPadding(Dp(18), Dp(3), 0, 0);
+            ApplyPageNote(summary);
+            column.AddView(summary);
+
+            // the rule spans pill + explanation, as on the rows with explanations
+            row.AddView(NoteRule(), RuleParams());
+            row.AddView(column, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WrapContent, 1f));
+
+            Indent(row, level);
+            _container.AddView(row);
         }
 
         private void AddFontRows(string key, int level, int familyLabelRes)
@@ -271,7 +334,7 @@ namespace keepass2android
         // ---- export / import ------------------------------------------------------------------------
 
         /// <summary>
-        /// The first section of the page: the Export / Import panel, the backup folder, and — directly
+        /// The first section of the page: the Export / Import panel, the backup directory, and — directly
         /// beneath those, never as a section of its own — the 保存復元 automation rows: the master switch
         /// (default ON), 「Use authorization token?」 (default OFF), and the token itself, which is shown
         /// only while it is actually being asked for.
@@ -280,8 +343,8 @@ namespace keepass2android
         {
             AddSection(Resource.String.theme_section_backup);
 
-            AddDetailRow(Resource.String.backup_open_row, GetString(Resource.String.backup_open_desc), 1,
-                OpenExportImport, out _, out _);
+            AddPillRow(Resource.String.backup_open_row, Resource.String.backup_open_desc, 1,
+                main: true, opens: true, OpenExportImport);
 
             AddDetailRow(Resource.String.backup_dir_row, "", 1, EditBackupDir, out _backupDirSummary, out _);
             RefreshBackupDir();
@@ -303,7 +366,7 @@ namespace keepass2android
             AddTokenRow(1);
         }
 
-        /// <summary>The folder, shown in warn-red until one is set — as the panel shows it.</summary>
+        /// <summary>The directory, shown in warn-red until one is set — as the panel shows it.</summary>
         private void RefreshBackupDir()
         {
             if (_backupDirSummary == null)
@@ -314,13 +377,13 @@ namespace keepass2android
             if (dir == null)
                 _backupDirSummary.SetTextColor(BackupWarn);
             else
-                ApplyPageTextColor(_backupDirSummary);
+                ApplyPageNote(_backupDirSummary);
         }
 
         private void OpenExportImport() =>
             ExportImportDialog.Show(this, onChainFinished: Finish, onDismissed: RefreshBackupDir);
 
-        /// <summary>Set the folder from the page itself, without opening the whole panel first.</summary>
+        /// <summary>Set the directory from the page itself, without opening the whole panel first.</summary>
         private void EditBackupDir() =>
             ExportImportDialog.EditDirectory(this, RefreshBackupDir);
 
@@ -335,8 +398,13 @@ namespace keepass2android
 
             action.Visibility = ViewStates.Visible;
             action.Text = GetString(Resource.String.automation_token_regenerate);
-            action.SetTextColor(Kp2aTheme.AccentOr(this, new Color(action.CurrentTextColor)));
+            Color accent = Kp2aTheme.AccentOr(this, new Color(action.CurrentTextColor));
+            action.SetTextColor(accent);
             ApplyPageFont(action);
+            // every tappable action is a pill — a regular one: thin frame, normal weight, never filled
+            action.SetTypeface(action.Typeface, TypefaceStyle.Normal);
+            action.Background = PillBackground(accent, main: false);
+            action.SetPadding(Dp(14), Dp(5), Dp(14), Dp(5));
             action.Click += (s, e) =>
             {
                 string fresh = AutomationAuth.RegenerateToken(this);
@@ -367,7 +435,14 @@ namespace keepass2android
             summaryView.Text = summary ?? "";
             summaryView.Visibility = string.IsNullOrEmpty(summary) ? ViewStates.Gone : ViewStates.Visible;
             ApplyPageLabel(label);
-            ApplyPageLabel(summaryView);
+            ApplyPageNote(summaryView);
+
+            // black-yellow-theme skill, settings rows with explanations: bold label, dim-gold description,
+            // a thin dim-gold rule down the item's left edge, tight padding.
+            label.SetTypeface(label.Typeface, TypefaceStyle.Bold);
+            ((LinearLayout)v).AddView(NoteRule(), 0, RuleParams());
+            v.SetMinimumHeight(0);
+            v.SetPadding(v.PaddingLeft, Dp(2), v.PaddingRight, Dp(2));
 
             if (onClick != null)
                 v.Click += (s, e) => onClick();
@@ -379,9 +454,16 @@ namespace keepass2android
         private void AddSwitchRow(int labelRes, int summaryRes, int level, bool initial, Action<bool> onChanged)
         {
             var v = AddDetailRow(labelRes, GetString(summaryRes), level, null, out _, out _);
+            AttachSwitch(v, initial, onChanged);
+        }
+
+        private void AttachSwitch(View v, bool initial, Action<bool> onChanged)
+        {
             var widget = v.FindViewById<FrameLayout>(Resource.Id.row_widget);
 
             var toggle = new AndroidX.AppCompat.Widget.SwitchCompat(this) { Checked = initial };
+            toggle.SetMinimumHeight(0);
+            toggle.SetMinHeight(0);
             Color accent = Kp2aTheme.AccentOr(this, new Color(toggle.CurrentTextColor));
             toggle.ThumbTintList = ColorStateList.ValueOf(accent);
             toggle.TrackTintList = ColorStateList.ValueOf(
@@ -393,6 +475,16 @@ namespace keepass2android
         }
 
         // ---- refresh ------------------------------------------------------------------------------
+
+        /// <summary>Page colours repaint the whole page (descriptions, rules, pills); others just their swatch.</summary>
+        private void AfterColorChange(ThemeSlot slot)
+        {
+            if (slot == ThemeSlot.PageText || slot == ThemeSlot.PageNote || slot == ThemeSlot.PageBackground ||
+                slot == ThemeSlot.Accent)
+                BuildPage();
+            else
+                RefreshSwatch(slot);
+        }
 
         private void RefreshSwatch(ThemeSlot slot)
         {
@@ -427,8 +519,8 @@ namespace keepass2android
         {
             int current = ThemeConfig.GetColor(this, ThemeColors.KeyOf(slot));
             ColorPickerDialog.Show(this, current,
-                onPicked: argb => { ThemeConfig.SetColor(this, ThemeColors.KeyOf(slot), argb); RefreshSwatch(slot); },
-                onCleared: () => { ThemeConfig.ClearColor(this, ThemeColors.KeyOf(slot)); RefreshSwatch(slot); });
+                onPicked: argb => { ThemeConfig.SetColor(this, ThemeColors.KeyOf(slot), argb); AfterColorChange(slot); },
+                onCleared: () => { ThemeConfig.ClearColor(this, ThemeColors.KeyOf(slot)); AfterColorChange(slot); });
         }
 
         private void OpenFontPicker(string key)
@@ -549,6 +641,69 @@ namespace keepass2android
         {
             ApplyPageTextColor(tv);
             ApplyPageFont(tv);
+        }
+
+        /// <summary>The dim-gold "Descriptions" colour; derived from the page text if it was cleared.</summary>
+        private Color NoteColor()
+        {
+            if (Kp2aTheme.TryColor(this, ThemeSlot.PageNote, out var c))
+                return c;
+            Color t = Kp2aTheme.TryColor(this, ThemeSlot.PageText, out var text) ? text : new Color(unchecked((int)0xFFFFFF00));
+            return new Color(Color.Argb(t.A, t.R * 200 / 255, t.G * 200 / 255, t.B * 200 / 255));
+        }
+
+        private void ApplyPageNote(TextView tv)
+        {
+            tv.SetTextColor(NoteColor());
+            ApplyPageFont(tv);
+        }
+
+        private View NoteRule()
+        {
+            var rule = new View(this);
+            rule.SetBackgroundColor(NoteColor());
+            return rule;
+        }
+
+        private LinearLayout.LayoutParams RuleParams()
+        {
+            var lp = new LinearLayout.LayoutParams(Dp(2), ViewGroup.LayoutParams.MatchParent);
+            lp.MarginEnd = Dp(10);
+            return lp;
+        }
+
+        /// <summary>An outlined pill (never filled): 3 dp for the main action, 1.25 dp otherwise.</summary>
+        private Drawable PillBackground(Color ink, bool main)
+        {
+            var frame = new GradientDrawable();
+            frame.SetColor(Color.Transparent);
+            frame.SetStroke(Math.Max(1, (int)Math.Round((main ? 3f : 1.25f) * Resources.DisplayMetrics.Density)), ink);
+            frame.SetCornerRadius(Dp(50));
+            return new RippleDrawable(
+                ColorStateList.ValueOf(new Color(Color.Argb(0x4D, ink.R, ink.G, ink.B))), frame, null);
+        }
+
+        /// <summary>
+        /// The optional tag line under a label: the tag in bold monospace accent, then "  ·  " and a short
+        /// qualifier in dim gold (black-yellow-theme skill — only where the item has a natural tag).
+        /// </summary>
+        private void AddTagLine(View row, string tag, string qualifier)
+        {
+            var label = row.FindViewById<TextView>(Resource.Id.row_label);
+            var texts = (LinearLayout)label.Parent;
+            var line = new TextView(this);
+            var sb = new Android.Text.SpannableStringBuilder();
+            sb.Append(tag);
+            int tagEnd = sb.Length();
+            Color accent = Kp2aTheme.AccentOr(this, new Color(label.CurrentTextColor));
+            sb.SetSpan(new Android.Text.Style.ForegroundColorSpan(accent), 0, tagEnd, Android.Text.SpanTypes.ExclusiveExclusive);
+            sb.SetSpan(new Android.Text.Style.StyleSpan(TypefaceStyle.Bold), 0, tagEnd, Android.Text.SpanTypes.ExclusiveExclusive);
+            sb.SetSpan(new Android.Text.Style.TypefaceSpan("monospace"), 0, tagEnd, Android.Text.SpanTypes.ExclusiveExclusive);
+            sb.Append("  ·  " + qualifier);
+            sb.SetSpan(new Android.Text.Style.ForegroundColorSpan(NoteColor()), tagEnd, sb.Length(), Android.Text.SpanTypes.ExclusiveExclusive);
+            line.SetText(sb, TextView.BufferType.Spannable);
+            line.SetTextSize(Android.Util.ComplexUnitType.Sp, 13);
+            texts.AddView(line, texts.IndexOfChild(label) + 1);
         }
 
         // ---- app language -------------------------------------------------------------------------

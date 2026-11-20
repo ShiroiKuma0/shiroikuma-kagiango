@@ -251,27 +251,37 @@
 
   <!-- Fork (白い熊 鍵暗号 UI): the starting window the system shows while an activity launches
        (the zoom-in splash and its status bar) is drawn from the theme alone, before any runtime
-       theming runs — so status bar, window background and splash are the signature black here. -->
+       theming runs — so status bar, window background and splash are the signature black here.
+       The splash icon is named explicitly: left to the system, EMUI draws the launcher icon on its
+       own white plate (a white square around the icon on the launch splash). -->
   <style name="Kp2aTheme_ActionBar" parent="AppTheme.Primary">
     <item name="android:statusBarColor">@color/shiroikuma_window_black</item>
     <item name="android:windowBackground">@color/shiroikuma_window_black</item>
     <item name="android:windowSplashScreenBackground">@color/shiroikuma_window_black</item>
+    <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_icon_kagiango</item>
+    <item name="android:windowSplashScreenIconBackgroundColor">@color/shiroikuma_window_black</item>
   </style>
   <style name="Kp2aTheme_BlueActionBar" parent="AppTheme.Secondary">
     <item name="android:statusBarColor">@color/shiroikuma_window_black</item>
     <item name="android:windowBackground">@color/shiroikuma_window_black</item>
     <item name="android:windowSplashScreenBackground">@color/shiroikuma_window_black</item>
+    <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_icon_kagiango</item>
+    <item name="android:windowSplashScreenIconBackgroundColor">@color/shiroikuma_window_black</item>
   </style>
 
   <style name="Kp2aTheme_NoActionBar" parent="AppTheme.Primary.NoActionBar">
     <item name="android:statusBarColor">@color/shiroikuma_window_black</item>
     <item name="android:windowBackground">@color/shiroikuma_window_black</item>
     <item name="android:windowSplashScreenBackground">@color/shiroikuma_window_black</item>
+    <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_icon_kagiango</item>
+    <item name="android:windowSplashScreenIconBackgroundColor">@color/shiroikuma_window_black</item>
   </style>
   <style name="Kp2aTheme_BlueNoActionBar" parent="AppTheme.Secondary.NoActionBar">
     <item name="android:statusBarColor">@color/shiroikuma_window_black</item>
     <item name="android:windowBackground">@color/shiroikuma_window_black</item>
     <item name="android:windowSplashScreenBackground">@color/shiroikuma_window_black</item>
+    <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_icon_kagiango</item>
+    <item name="android:windowSplashScreenIconBackgroundColor">@color/shiroikuma_window_black</item>
   </style>
 
 

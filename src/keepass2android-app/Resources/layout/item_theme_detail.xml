@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- 白い熊 鍵暗号 UI page row with a second line: title over a summary, an optional right-hand action
      (e.g. "Regenerate") and an optional widget slot (e.g. a switch). Used by the Export / Import
-     section — the entry row, the backup-folder row, the automation switch and the token row. -->
+     section — the backup-directory row, the automation switch and the token row. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:minHeight="48dp"
+    android:minHeight="0dp"
     android:gravity="center_vertical"
     android:orientation="horizontal"
     android:background="?attr/selectableItemBackground"

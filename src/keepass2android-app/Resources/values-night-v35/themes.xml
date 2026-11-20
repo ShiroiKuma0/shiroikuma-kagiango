@@ -4,6 +4,8 @@
     <item name="android:statusBarColor">@android:color/transparent</item>
     <item name="android:windowBackground">@color/shiroikuma_window_black</item>
     <item name="android:windowSplashScreenBackground">@color/shiroikuma_window_black</item>
+    <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_icon_kagiango</item>
+    <item name="android:windowSplashScreenIconBackgroundColor">@color/shiroikuma_window_black</item>
   </style>
 
   <style name="Kp2aTheme_BlueActionBar" parent="AppTheme.Secondary">
@@ -11,6 +13,8 @@
     <item name="android:statusBarColor">@android:color/transparent</item>
     <item name="android:windowBackground">@color/shiroikuma_window_black</item>
     <item name="android:windowSplashScreenBackground">@color/shiroikuma_window_black</item>
+    <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_icon_kagiango</item>
+    <item name="android:windowSplashScreenIconBackgroundColor">@color/shiroikuma_window_black</item>
   </style>
 
   <style name="Kp2aTheme_NoActionBar" parent="AppTheme.Primary.NoActionBar">
@@ -18,6 +22,8 @@
     <item name="android:statusBarColor">@android:color/transparent</item>
     <item name="android:windowBackground">@color/shiroikuma_window_black</item>
     <item name="android:windowSplashScreenBackground">@color/shiroikuma_window_black</item>
+    <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_icon_kagiango</item>
+    <item name="android:windowSplashScreenIconBackgroundColor">@color/shiroikuma_window_black</item>
 
   </style>
 
@@ -26,5 +32,7 @@
     <item name="android:statusBarColor">@android:color/transparent</item>
     <item name="android:windowBackground">@color/shiroikuma_window_black</item>
     <item name="android:windowSplashScreenBackground">@color/shiroikuma_window_black</item>
+    <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_icon_kagiango</item>
+    <item name="android:windowSplashScreenIconBackgroundColor">@color/shiroikuma_window_black</item>
   </style>
 </resources>   

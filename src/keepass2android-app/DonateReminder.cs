@@ -209,6 +209,9 @@ namespace keepass2android
 
     public static void ShowDonateReminderIfAppropriate(Activity context)
     {
+      // Fork: never show the donation reminder.
+      return;
+#pragma warning disable CS0162
       ISharedPreferences prefs = PreferenceManager.GetDefaultSharedPreferences(context);
       if (prefs.GetBoolean(context.GetString(Resource.String.NoDonationReminder_key), false))
         return;
@@ -234,7 +237,7 @@ namespace keepass2android
           }
         }
       }
-
+#pragma warning restore CS0162
     }
   }
 }

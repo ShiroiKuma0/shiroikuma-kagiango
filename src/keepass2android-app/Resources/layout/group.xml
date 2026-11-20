@@ -9,6 +9,14 @@
         android:id="@+id/group_toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize" />
+    <!-- Fork (白い熊 鍵暗号 UI): multi-select icons go here, below the title row, instead of into
+         AppCompat's action-mode bar which pushes the title row down (see SelectionBarActionMode). -->
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/group_selection_toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:layout_below="@id/group_toolbar"
+        android:visibility="gone" />
  
     <RelativeLayout
         android:id="@+id/bottom_bar"
@@ -357,7 +365,7 @@
    <keepass2android.views.BackgroundOperationContainer
         android:visibility="gone"
      android:id="@+id/background_ops_container"
-     android:layout_below="@id/group_toolbar"
+     android:layout_below="@id/group_selection_toolbar"
      android:layout_width="match_parent"
      android:layout_height="wrap_content"
 

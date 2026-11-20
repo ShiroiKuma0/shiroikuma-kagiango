@@ -725,10 +725,8 @@ namespace keepass2android
       var donateItem = menu.FindItem(Resource.Id.menu_donate);
       if (donateItem != null)
       {
-        donateItem.SetVisible(
-            !PreferenceManager.GetDefaultSharedPreferences(ctx)
-                .GetBoolean(ctx.GetString(Resource.String.NoDonateOption_key), false)
-        );
+        // Fork: no donate entry anywhere in the app.
+        donateItem.SetVisible(false);
       }
     }
 

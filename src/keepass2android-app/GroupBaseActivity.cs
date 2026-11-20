@@ -953,6 +953,20 @@ namespace keepass2android
       UpdateBottomBarVisibility();
     }
 
+    // Fork (白い熊 鍵暗号 UI): draw the multi-select action mode into the toolbar below the title row
+    // rather than AppCompat's action-mode bar, so the title row stays put while entries are selected.
+    public override AndroidX.AppCompat.View.ActionMode OnWindowStartingSupportActionMode(AndroidX.AppCompat.View.ActionMode.ICallback callback)
+    {
+      var bar = FindViewById<AndroidX.AppCompat.Widget.Toolbar>(Resource.Id.group_selection_toolbar);
+      if (bar != null)
+      {
+        var mode = keepass2android.Theming.SelectionBarActionMode.Start(this, bar, callback);
+        if (mode != null)
+          return mode;
+      }
+      return base.OnWindowStartingSupportActionMode(callback);
+    }
+
     protected virtual int ContentResourceId
     {
       get { return Resource.Layout.group; }
@@ -1540,7 +1554,6 @@ namespace keepass2android
   public class GroupListFragment : ListFragment, AbsListView.IMultiChoiceModeListener
   {
     private ActionMode _mode;
-    private int _statusBarColor;
 
     public override void OnActivityCreated(Bundle savedInstanceState)
     {
@@ -1650,11 +1663,7 @@ namespace keepass2android
       ((PwGroupListAdapter)ListView.Adapter).InActionMode = true;
       ((PwGroupListAdapter)ListView.Adapter).NotifyDataSetChanged();
       _mode = mode;
-      if (Build.VERSION.SdkInt >= BuildVersionCodes.Lollipop)
-      {
-        _statusBarColor = Activity.Window.StatusBarColor;
-        Activity.Window.SetStatusBarColor(Activity.Resources.GetColor(Resource.Color.md_theme_secondary));
-      }
+      // Fork (白い熊 鍵暗号 UI): the status bar keeps its colour while entries are selected.
       return true;
     }
 
@@ -1664,10 +1673,6 @@ namespace keepass2android
       ((PwGroupListAdapter)ListView.Adapter).InActionMode = false;
       ((PwGroupListAdapter)ListView.Adapter).NotifyDataSetChanged();
       _mode = null;
-      if (Build.VERSION.SdkInt >= BuildVersionCodes.Lollipop)
-      {
-        Activity.Window.SetStatusBarColor(new Android.Graphics.Color(_statusBarColor));
-      }
     }
 
     public bool OnPrepareActionMode(ActionMode mode, IMenu menu)

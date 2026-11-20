@@ -311,7 +311,7 @@ namespace keepass2android
         if (isFirst)
         {
 
-          bool showDonateOption = true;
+          bool showDonateOption = false; // Fork: no donate line in the change log.
           ISharedPreferences prefs = PreferenceManager.GetDefaultSharedPreferences(ctx);
           if (prefs.GetBoolean(ctx.GetString(Resource.String.NoDonationReminder_key), false))
             showDonateOption = false;

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 白い熊 鍵暗号 fork: the launch-splash icon. The system splash scales the icon up and masks it to
+     a circle two thirds of its width, so the lock mark is inset here to stay whole inside it. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_launcher_foreground_kagiango"
+    android:inset="16%" />

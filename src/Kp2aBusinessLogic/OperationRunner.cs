@@ -121,6 +121,9 @@ public class OperationRunner
                             _app.UiThreadHandler.Post(() =>
                                     {
                                       _progressDialog?.Dismiss();
+                                      // Fork: drop the dismissed dialog — it holds its activity, and this
+                                      // runner is a process-wide singleton.
+                                      _progressDialog = null;
                                     }
                                         );
                           }
@@ -167,6 +170,7 @@ public class OperationRunner
     if (_progressDialog != null)
     {
       var pd = _progressDialog;
+      _progressDialog = null;
       _app.UiThreadHandler.Post(() =>
       {
         pd.Dismiss();

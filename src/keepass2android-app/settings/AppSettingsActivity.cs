@@ -531,9 +531,14 @@ namespace keepass2android
         new AppLanguageManager(this, languagePref, supportedLocales);
 
 
-        PrepareNoDonatePreference(Activity, FindPreference(GetString(Resource.String.NoDonateOption_key)));
+        // Fork: donating is gone, so are its two display options.
         var displayPrefScreen = ((PreferenceScreen)FindPreference(GetString(Resource.String.display_prefs_key)));
-        PrepareNoDonationReminderPreference(Activity, displayPrefScreen, FindPreference(GetString(Resource.String.NoDonationReminder_key)));
+        foreach (var donateKey in new[] { Resource.String.NoDonateOption_key, Resource.String.NoDonationReminder_key })
+        {
+          var donatePref = FindPreference(GetString(donateKey));
+          if (donatePref != null)
+            donatePref.Parent?.RemovePreference(donatePref);
+        }
 
         FindPreference(GetString(Resource.String.design_key)).PreferenceChange += (sender, args) =>
         {
