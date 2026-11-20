@@ -6,11 +6,11 @@
 
 **A KeePass 2.x password manager for Android, restyled head-to-toe in signature black-yellow.**
 
-A fork of [keepass2android](https://github.com/PhilippC/keepass2android) with **major additions**: a per-element theming page (colors and fonts for every surface), a one-ZIP export/import of every setting, a sister-app backup door that checks who is knocking, an app-drawn black-yellow fingerprint dialog, a chronologically merged fork+upstream change log, and the offline-only NoNet build.
+A fork of [keepass2android](https://github.com/PhilippC/keepass2android) with **major additions**: a per-element theming page (colors and fonts for every surface), a one-ZIP export/import of every setting, a sister-app backup door that checks who is knocking, an app-drawn black-yellow fingerprint dialog, a chronologically merged fork+upstream change log, a built-in leak tracer, no donation prompts, and the offline-only NoNet build.
 
 Installs **side-by-side** with Keepass2Android (app id `shiroikuma.kagiango`). Built for **arm64-v8a**.
 
-**📥 Latest release: [`1.15-r3+015`](https://github.com/ShiroiKuma0/shiroikuma-kagiango/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-kagiango/releases)
+**📥 Latest release: [`1.15-r3+021`](https://github.com/ShiroiKuma0/shiroikuma-kagiango/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-kagiango/releases)
 
 </div>
 
@@ -29,9 +29,9 @@ Adding or editing an entry stays in the palette too: the template picker is a na
 ## 💾 Export / import every setting — as one ZIP
 The first section of the UI page backs the app up and restores it. Tick what you want — colors, fonts (and the font files you imported), display and language, security, QuickUnlock, password access, file handling, TrayTotp, password-generator profiles, debug — and Export writes **a single timestamped ZIP**; Import merges it back key by key, so a restore never destroys what it didn't cover. Categories mirror the app's own settings screens and their keys are read from the preference definitions at runtime, so settings a future upstream adds are carried along automatically.
 
-Because this is a password manager, the export is an **allow-list**: only keys a category claims are ever written, and the biometric unlock's Keystore-wrapped master password and any stored remote-storage logins are excluded outright — on import as well as export, so a hand-edited archive cannot inject a credential back in. Your database, its master password, and the backup folder itself never travel inside a backup.
+Because this is a password manager, the export is an **allow-list**: only keys a category claims are ever written, and the biometric unlock's Keystore-wrapped master password and any stored remote-storage logins are excluded outright — on import as well as export, so a hand-edited archive cannot inject a credential back in. Your database, its master password, and the backup directory itself never travel inside a backup.
 
-An archive is built under a `.part` name and renamed only once it is whole, so a run that fails — or is stopped — leaves the backup folder exactly as it found it: no short archive, no stray partial.
+An archive is built under a `.part` name and renamed only once it is whole, so a run that fails — or is stopped — leaves the backup directory exactly as it found it: no short archive, no stray partial.
 
 A sister app can run the same export **headlessly**. That switch now ships **on** — a phone that has just been wiped has nobody left to configure it — while 「Use authorization token?」 stays off by default and reveals the token only if you actually ask for one; a token sent to an app that isn't asking is ignored rather than refused, so turning one switch off never breaks somebody else's batch. The app states which categories start ticked, so the caller's picker opens on our answer rather than a guess, and a running export can be **cancelled from outside**: it unwinds at the next category boundary and takes its partial file with it.
 
@@ -49,11 +49,14 @@ And the door is honest about what it hands over: its own self-description ends w
 ## 🫆 App-drawn fingerprint dialog
 The system biometric prompt renders outside the app and ignores theming — so the fork draws its own black-yellow fingerprint dialog (yellow-traced icon, themed text, accent Cancel), authenticating through the compat fingerprint API against the same Android-keystore cipher. If the device cannot serve the legacy API, it silently falls back to the system prompt, so unlocking always works.
 
+## 🔍 A leak tracer that names the holder
+Release builds refuse a heap dump, so the app carries its own: switch on **Diagnostics → Leak trace** on the UI page and, a few seconds after any screen closes, it forces a full collection, checks whether that screen is really gone, and if it is not, walks the app's whole object graph to write down **the chain of fields still holding it**. Off by default; it writes plain `.txt` files under the app's own `diag/` directory.
+
 ## 📜 Merged change log
 The change-log dialog shows the fork's own dated entries merged chronologically on top of the upstream history — one themed black-yellow timeline of everything, from upstream 0.7 to the newest fork build.
 
 ## 📴 Offline-only (NoNet)
-Only the **NoNet** flavor is built: no cloud-storage SDKs, no QR scanner, no network permissions beyond what the offline app needs. Your database stays on the device.
+Only the **NoNet** flavor is built: no cloud-storage SDKs, no QR scanner, no network permissions beyond what the offline app needs — and no “Donate a beer” menu items, drawer button or reminder pop-ups. Your database stays on the device.
 
 ---
 
